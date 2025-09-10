@@ -31,11 +31,11 @@ const Game = (function() {
             applyMove(posX, posY, id); 
         }
 
-        const player = { name, team, requestMove };
+        const player = { name, team };
 
         playerPool.set(id, player)
 
-        return player;
+        return { ...player, requestMove };
     }
 
     function restartGame() {
@@ -101,7 +101,7 @@ const Game = (function() {
 
             if(isCellEmpty && !outOfBounds && !isRoundWon && isIdAvailable) { // Board can safely write if conditions are met
                 
-                if (currentTurn === 'X') {
+                if (currentTurn === 'X' && playerPool.has(id).team === 'X') {
                     board[posX][posY] = { id, ...playerPool.get(id), input: 'X' };
                     moveHistory.push({ id, ...playerPool.get(id), input: 'X' });
                     checkBoard();

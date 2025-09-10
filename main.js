@@ -5,6 +5,7 @@ const Game = (function() {
 
 
     const moveHistory = [];
+    const playerPool = new Map();
 
     const board = [
         [{ id: '', input: '' }, { id: '', input: '' }, { id: '', input: '' }],
@@ -13,6 +14,7 @@ const Game = (function() {
     ];
 
     function createPlayer(name = "Noname", team) {
+
 
         const id = crypto.randomUUID();
 
@@ -29,7 +31,11 @@ const Game = (function() {
             applyMove(posX, posY, id); 
         }
 
-        return { name, team, requestMove };
+        const player = { name, team, requestMove };
+
+        playerPool.set(id, player)
+
+        return player;
     }
 
     function restartGame() {
@@ -52,7 +58,7 @@ const Game = (function() {
             
             //Horizontal Check
             if(board[i][0].input !== '' && board[i][0].input === board[i][1].input && board[0][1].input === board[i][2].input) {
-                console.log(`Row ${i + 1} has winner finished by ${moveHistory.at(-1).id}`);
+                console.log(`Row ${i + 1} has winner finished by ${moveHistory.at(-1).name}`);
                 isRoundWon = true;
                 break;
             } else {
@@ -61,7 +67,7 @@ const Game = (function() {
 
             // Vertical Check
             if(board[0][i].input !== '' && board[0][i].input === board[1][i].input && board[1][i].input === board[2][i].input) {
-                console.log(`Column ${i + 1 } has winner finished by ${moveHistory.at(-1).id}`);
+                console.log(`Column ${i + 1 } has winner finished by ${moveHistory.at(-1).name}`);
                 isRoundWon = true;
                 break;
             } else {
@@ -70,7 +76,7 @@ const Game = (function() {
 
             //Diagonal Checks
             if(board[0][0].input !== '' && board[0][0].input === board[1][1].input && board[1][1].input === board[2][2].input) {
-                console.log(`Main diagonal has winner finished by ${moveHistory.at(-1).id}`);
+                console.log(`Main diagonal has winner finished by ${moveHistory.at(-1).name}`);
                 isRoundWon = true;
                 break;
             } else {
@@ -78,7 +84,7 @@ const Game = (function() {
             }
             
             if(board[0][2].input !== '' && board[0][2].input === board[1][1].input && board[1][1].input === board[2][0].input) {
-                console.log(`Anti-diagonal has winner finished by ${moveHistory.at(-1).id}`);
+                console.log(`Anti-diagonal has winner finished by ${moveHistory.at(-1).name}`);
                 isRoundWon = true;
                 break;
             } else {
@@ -91,18 +97,18 @@ const Game = (function() {
         try {
             const isCellEmpty = board[posX][posY].input === '';
             const outOfBounds = (posX > 2 || posY > 2) || (posX < 0 || posY < 0);
-            const isIdAvailable = id !== '' && id !== null && id !== undefined;
+            const isIdAvailable = id !== '' && id !== null && id !== undefined && playerPool.has(id);
 
             if(isCellEmpty && !outOfBounds && !isRoundWon && isIdAvailable) { // Board can safely write if conditions are met
                 
                 if (currentTurn === 'X') {
-                    board[posX][posY] = { id, input: 'X' };
-                    moveHistory.push({ id, input: 'X' });
+                    board[posX][posY] = { id, ...playerPool.get(id), input: 'X' };
+                    moveHistory.push({ id, ...playerPool.get(id), input: 'X' });
                     checkBoard();
                     currentTurn = 'O';
                 } else {
-                    board[posX][posY] = { id, input: 'O' };
-                    moveHistory.push({ id, input: 'O' });
+                    board[posX][posY] = { id, ...playerPool.get(id), input: 'O' };
+                    moveHistory.push({ id, ...playerPool.get(id), input: 'O' });
                     checkBoard();
                     currentTurn = 'X';
                 }
@@ -147,9 +153,9 @@ const oh1 = Game.createPlayer('James', 'O');
 const ex2 = Game.createPlayer('Justin', 'X');
 
 
-ex1.requestMove(0,0);
-oh1.requestMove(1,0); // Should be invalid and currentTurn must be O
-ex1.requestMove(0,1);
-oh1.requestMove(1,1);
-ex2.requestMove(0,2); // must log winner
-oh1.requestMove(1,2); // no longer writes to board;
+// Sequence arranged so O wins (fills column 0 on turns 2,4,6)
+ex1.requestMove(0,0); // X
+oh1.requestMove(0,1); // O
+ex2.requestMove(1,1); // X
+oh1.requestMove(0,2); // O
+ex1.requestMove(2,2); // X -> should log winner

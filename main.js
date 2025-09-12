@@ -2,18 +2,19 @@ const Game = (function() {
 
     let isRoundWon = false;
     let currentTurn = 'X'; //first turn
-
+    
 
     const moveHistory = [];
+    const scoreHistory = [];
     const playerPool = new Map();
 
-    const board = [
+    let board = [
         [{ id: '', input: '' }, { id: '', input: '' }, { id: '', input: '' }],
         [{ id: '', input: '' }, { id: '', input: '' }, { id: '', input: '' }],
         [{ id: '', input: '' }, { id: '', input: '' }, { id: '', input: '' }]
     ];
 
-    function createPlayer(name = "Noname", team) {
+    function createPlayer(name, team) {
 
 
         const id = crypto.randomUUID();
@@ -49,16 +50,25 @@ const Game = (function() {
 
     // Checks the board
     function checkBoard() {
+        const lastMove = moveHistory.at(-1);
+
+        if (lastMove === null || lastMove === undefined) {
+            return;
+        }
+
+        if(isRoundWon) {
+            return;
+        }
+
+        const lastName = lastMove.name;
+
+         
+
         for (let i = 0; i < 3; i++) {
             
-            if(isRoundWon) {
-                restartGame();
-                break;
-            }
-            
             //Horizontal Check
-            if(board[i][0].input !== '' && board[i][0].input === board[i][1].input && board[0][1].input === board[i][2].input) {
-                console.log(`Row ${i + 1} has winner finished by ${moveHistory.at(-1).name}`);
+            if(board[i][0].input !== '' && board[i][0].input === board[i][1].input && board[i][1].input === board[i][2].input) {
+                console.log(`Row ${i + 1} has winner finished by ${lastName}`);
                 isRoundWon = true;
                 break;
             } else {
@@ -67,69 +77,96 @@ const Game = (function() {
 
             // Vertical Check
             if(board[0][i].input !== '' && board[0][i].input === board[1][i].input && board[1][i].input === board[2][i].input) {
-                console.log(`Column ${i + 1 } has winner finished by ${moveHistory.at(-1).name}`);
+                console.log(`Column ${i + 1 } has winner finished by ${lastName}`);
                 isRoundWon = true;
                 break;
             } else {
                 console.log(`Column ${i + 1 } no match`);
             }
-
-            //Diagonal Checks
-            if(board[0][0].input !== '' && board[0][0].input === board[1][1].input && board[1][1].input === board[2][2].input) {
-                console.log(`Main diagonal has winner finished by ${moveHistory.at(-1).name}`);
-                isRoundWon = true;
-                break;
-            } else {
-                console.log('Main diagonal no match');
-            }
-            
-            if(board[0][2].input !== '' && board[0][2].input === board[1][1].input && board[1][1].input === board[2][0].input) {
-                console.log(`Anti-diagonal has winner finished by ${moveHistory.at(-1).name}`);
-                isRoundWon = true;
-                break;
-            } else {
-                console.log('Anti-diagonal no match');
-            }
         }
+
+        //Diagonal Checks
+        if(board[0][0].input !== '' && board[0][0].input === board[1][1].input && board[1][1].input === board[2][2].input) {
+            console.log(`Main diagonal has winner finished by ${lastName}`);
+            isRoundWon = true;
+            return;
+        } else {
+            console.log('Main diagonal no match');
+        }
+        
+        if(board[0][2].input !== '' && board[0][2].input === board[1][1].input && board[1][1].input === board[2][0].input) {
+            console.log(`Anti-diagonal has winner finished by ${lastName}`);
+            isRoundWon = true;
+            return;
+        } else {
+            console.log('Anti-diagonal no match');
+        }
+
+        let hasTie = false;
+
+        //Tie conditions
+        if(moveHistory.length === 9 && !isRoundWon) {
+            hasTie = true;
+        }
+
+        if (hasTie) {
+            console.log('No winners!')
+            return;
+        }
+
+
+
+
     }
 
     function applyMove(posX, posY, id) {
         try {
-            const isCellEmpty = board[posX][posY].input === '';
+            const lastMove = moveHistory.at(-1);
             const outOfBounds = (posX > 2 || posY > 2) || (posX < 0 || posY < 0);
-            const isIdAvailable = id !== '' && id !== null && id !== undefined && playerPool.has(id);
-
-            if(isCellEmpty && !outOfBounds && !isRoundWon && isIdAvailable) { // Board can safely write if conditions are met
-                
-                if (currentTurn === 'X' && playerPool.has(id).team === 'X') {
-                    board[posX][posY] = { id, ...playerPool.get(id), input: 'X' };
-                    moveHistory.push({ id, ...playerPool.get(id), input: 'X' });
-                    checkBoard();
-                    currentTurn = 'O';
-                } else {
-                    board[posX][posY] = { id, ...playerPool.get(id), input: 'O' };
-                    moveHistory.push({ id, ...playerPool.get(id), input: 'O' });
-                    checkBoard();
-                    currentTurn = 'X';
-                }
-            
-            }
-
-            if(!isCellEmpty) {
-                const lastMove = moveHistory.at(-1);
-                throw `Cell (${posX},${posY}) occupied by Player: ${lastMove.id}`;
-            }
 
             if(outOfBounds) {
                 throw `Cell (${posX},${posY}) is out of bounds`;
             }
 
-            if(!isIdAvailable) {
+            const isCellEmpty = board[posX][posY].input === '';
+
+            if(!isCellEmpty) {
+                throw `Cell (${posX},${posY}) occupied by Player: ${lastMove.name}`;
+            }
+            
+            const isIdAvailable = id !== '' && id !== null && id !== undefined && playerPool.has(id);
+
+             if(!isIdAvailable) {
                 throw `player id is ${id}`;
             }
 
             if(isRoundWon) {
                 throw `Game is already finished! Please start a new game`;
+            }
+
+            if(isCellEmpty && !outOfBounds && !isRoundWon && isIdAvailable) { // Board can safely write if conditions are met
+                
+                if (currentTurn === 'X' && playerPool.get(id).team === 'X') {
+                    board[posX][posY] = { id, ...playerPool.get(id), input: 'X' };
+                    moveHistory.push({ id, ...playerPool.get(id), input: 'X' });
+                    checkBoard();
+                    currentTurn = 'O';
+                    return;
+                } else {
+                    console.log(`Player ${playerPool.get(id).name} is team O`);
+                }
+                
+                
+                if (currentTurn === 'O' && playerPool.get(id).team === 'O') {
+                    board[posX][posY] = { id, ...playerPool.get(id), input: 'O' };
+                    moveHistory.push({ id, ...playerPool.get(id), input: 'O' });
+                    checkBoard();
+                    currentTurn = 'X';
+                    return;
+                } else {
+                    console.log(`Player ${playerPool.get(id).name} is team X`);
+                }
+            
             }
 
         } catch (error) {
@@ -138,9 +175,9 @@ const Game = (function() {
         
     }
 
-    
-
-
+    function securePlayers() {
+        
+    }
 
     
     
@@ -149,12 +186,12 @@ const Game = (function() {
 })();
 
 const ex1 = Game.createPlayer('Bryan', 'X');
-const oh1 = Game.createPlayer('James', 'O');
+const oh1 = Game.createPlayer('James', 'X');
 const ex2 = Game.createPlayer('Justin', 'X');
 
 
 // Sequence arranged so O wins (fills column 0 on turns 2,4,6)
-ex1.requestMove(0,0); // X
+ex1.requestMove(4,0); // X
 oh1.requestMove(0,1); // O
 ex2.requestMove(1,1); // X
 oh1.requestMove(0,2); // O

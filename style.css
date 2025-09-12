@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
+
+:root {
+    /* colors */
+    --black: #0f0f11;
+    --zinc-950: #111115;
+    --zinc-900: #16161a;
+    --zinc-100: #f4f4f5;
+    --zinc-200: #e4e4e7;
+    --zinc-300: #d4d4d8;
+    --zinc-400: #a1a1aa;
+    --zinc-500: #71717a;
+    --cyan-400: #22d3ee;
+    --emerald-400: #34d399;
+    --violet-400: #a78bfa;
+    --fuchsia-400: #e879f9;
+    --amber-400: #fbbf24;
+    --rose-400: #fb7185;
+    --white-90: rgba(255, 255, 255, 0.9);
+    --white-80: rgba(255, 255, 255, 0.8);
+    --white-20: rgba(255, 255, 255, 0.2);
+    --white-10: rgba(255, 255, 255, 0.1);
+    --white-5: rgba(255, 255, 255, 0.05);
+    --cyan-400-20: rgba(34, 211, 238, 0.2);
+    --cyan-400-40: rgba(34, 211, 238, 0.4);
+    --cyan-400-70: rgba(34, 211, 238, 0.7);
+
+    /* spacing */
+    --tiny-gap: 0.5rem;
+    --small-gap: 1rem;
+    --small-med-gap: 1.5rem;
+    --med-gap: 2rem;
+    --med-large-gap: 2.5rem;
+    --large-gap: 3rem;
+
+    /* panel heights */
+    --height-50: 50px;
+    --height-100: 100px;
+    --height-500: 500px;
+    --height-600: 600px;
+
+
+    /* panel widths */
+    --width-500: 500px;
+
+    /* fonts */
+    --body: "Ubuntu", sans-serif;
+
+}
+
+.app {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: var(--black);
+    color: var(--white-90);
+    font-family: var(--body);
+}
+
+.gamePanel {
+    min-height: var(--height-600);
+    min-width: var(--width-500);
+    display: flex;
+    flex-direction: column;
+    border: 1px var(--zinc-500) solid;
+    border-radius: 1.5rem;
+    background-color: var(--zinc-900);
+}
+
+.gameHeader {
+    display: flex;
+    height: var(--height-50);
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px var(--zinc-500) solid;
+    padding: 1rem;
+}
+
+.subtitle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.status[data-status="notStart"] {
+    height: 10px;
+    width: 10px;
+    border-radius: 999px;
+    background-color: var(--rose-400);
+}
+
+.status[data-status="Start"] {
+    height: 10px;
+    width: 10px;
+    border-radius: 999px;
+    background-color: var(--emerald-400);
+}
+
+.subheader {
+    padding: 1rem;
+    height: var(--height-100);
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    border-bottom: 1px var(--zinc-500) solid;
+    background-color: var(--zinc-950);
+    font-size: 0.875rem;
+    gap: 2rem
+}
+
+.board {
+    padding: 1.5rem;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    grid-template-rows: repeat(3,1fr);
+    gap: var(--tiny-gap)
+}
+
+.cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px var(--zinc-500) solid;
+    border-radius: 1.5rem;
+    padding: 1rem;
+    background-color: var(--zinc-950);
+}
+
+button {
+    border: 1px var(--zinc-500) solid;
+    border-radius: 1.5rem;
+    padding: 0.975rem;
+    width: 80px;
+    background-color: var(--zinc-950);
+    color: white;
+}
+
+.cell:hover, button:hover {
+    cursor: pointer;
+    animation-name: cellHover;
+    animation-duration: 200ms;
+    animation-fill-mode: forwards;
+}
+
+@keyframes cellHover {
+    from {background-color: var(--zinc-950);}
+    to {background-color: var(--zinc-900);}
+}
+

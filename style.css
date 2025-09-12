@@ -42,6 +42,7 @@
 
     /* panel widths */
     --width-500: 500px;
+    --width-600: 600px;
 
     /* fonts */
     --body: "Ubuntu", sans-serif;
@@ -50,13 +51,13 @@
 
 .app {
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100vh;
     background-color: var(--black);
     color: var(--white-90);
     font-family: var(--body);
+    gap: var(--med-gap);
 }
 
 .gamePanel {
@@ -69,13 +70,14 @@
     background-color: var(--zinc-900);
 }
 
-.gameHeader {
+.gameHeader, .matchHeader {
     display: flex;
     height: var(--height-50);
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px var(--zinc-500) solid;
     padding: 1rem;
+    font-weight: 500;
 }
 
 .subtitle {
@@ -111,7 +113,12 @@
     gap: 2rem
 }
 
+.label {
+    color: var(--zinc-500);
+}
+
 .board {
+    flex-grow: 1;
     padding: 1.5rem;
     height: 100%;
     display: grid;
@@ -151,3 +158,102 @@ button {
     to {background-color: var(--zinc-900);}
 }
 
+
+
+/* Match panel */
+
+.matchPanel {
+    min-height: var(--height-600);
+    min-width: var(--width-600);
+    display: flex;
+    flex-direction: column;
+    border: 1px var(--zinc-500) solid;
+    border-radius: 1.5rem;
+    background-color: var(--zinc-900);
+}
+
+.matchBoard {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: 1fr 2fr;
+}
+
+.matchPanel__footer {
+    flex-shrink: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-top: 1px var(--zinc-500) solid;
+}
+
+a {
+    text-decoration: none;
+    color: white;
+    font-style: italic;
+}
+
+.footer__credits {
+    font-size: 12px;
+    color: var(--zinc-500)
+}
+
+.matchBoard__cards {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: center;
+    justify-items: center;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    width: 80%;
+    height: 100px;
+    border: 1px var(--zinc-500) solid;
+    padding: 0.875rem;
+    border-radius: 1rem;
+}
+
+.score {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    font-size: 2rem;
+}
+
+.teamLabel {
+    color: var(--zinc-400);
+    font-size: 12px;
+}
+
+.matchBoard__history {
+    grid-column: 1 / -1;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+
+.moveHistory {
+    color: var(--zinc-500);
+}
+
+.history {
+    height: 80%;
+    border: 1px var(--zinc-500) solid ;
+    background-color: var(--zinc-950);
+    border-radius: 1rem;
+}
+
+.history[data-history="false"] {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    content: "No History Yet";
+    color: var(--zinc-500);
+    font-size: 14px;
+    font-style: italic;
+}

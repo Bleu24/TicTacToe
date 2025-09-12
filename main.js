@@ -1,6 +1,12 @@
-const Game = (function() {
+document.addEventListener('DOMContentLoaded', () => {
+
+    const board = document.querySelector('.board');
+    const cells = document.querySelectorAll('.cell');
+
+    const Game = (function() {
 
     let isRoundWon = false;
+    let hasStart = false;
     let currentTurn = 'X'; //first turn
     
 
@@ -181,18 +187,35 @@ const Game = (function() {
 
     
     
-    return { createPlayer, checkBoard, applyMove };
+    return { currentTurn, createPlayer, checkBoard, applyMove, hasStart };
 
-})();
-
-const ex1 = Game.createPlayer('Bryan', 'X');
-const oh1 = Game.createPlayer('James', 'X');
-const ex2 = Game.createPlayer('Justin', 'X');
+    })();
 
 
-// Sequence arranged so O wins (fills column 0 on turns 2,4,6)
-ex1.requestMove(4,0); // X
-oh1.requestMove(0,1); // O
-ex2.requestMove(1,1); // X
-oh1.requestMove(0,2); // O
-ex1.requestMove(2,2); // X -> should log winner
+
+    board.addEventListener('click', e => {
+
+        if(!Game.hasStart) {
+
+        }
+
+        const cell = e.target.closest('.cell');
+        if(cell) {
+            const row = parseInt(cell.getAttribute('data-row') - 1);
+            const col = parseInt(cell.getAttribute('data-col') - 1);
+
+            if(Game.currentTurn === 'X') {
+                cell.textContent = 'X';
+                Game.currentTurn = 'O';
+            } else {
+                cell.textContent = 'O';
+                Game.currentTurn = 'X';
+            }
+        }
+    })
+
+    
+
+});
+
+

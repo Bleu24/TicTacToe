@@ -11,12 +11,6 @@
 <body>
 
     <div class="app">
-        <div class="matchPanel">
-            <div class="matchHeader">
-
-            </div>            
-        </div>
-
         <div class="gamePanel">
             <div class="gameHeader">
                 <div class="gameTitle">Tic-Tac-Toe</div>
@@ -25,9 +19,9 @@
                 </div>
             </div>
             <div class="subheader">
-                <div class="turn">Turn: </div>
-                <div class="round">Round: </div>
-                <div class="mode">Mode: PvAI </div> <!-- PVP or PvAI -->
+                <div class="label">Turn: </div>
+                <div class="label">Round: </div>
+                <div class="label">Mode: </div> <!-- PVP or PvAI -->
                 <button class="reset">Reset</button>
                 <button class="newGame">Start</button>
             </div>
@@ -42,6 +36,36 @@
                 <div class="cell"></div>
                 <div class="cell"></div>    
             </div>
+        </div>
+
+        <div class="matchPanel">
+            <div class="matchHeader">
+                <div class="matchTitle">Match Panel</div>
+            </div>
+            <div class="matchBoard">
+                <div class="matchBoard__cards">
+                    <div class="card x">
+                        <div class="teamLabel">Team X</div>
+                        <div class="score">0</div>
+                    </div>
+                    <div class="card draw">
+                        <div class="teamLabel">Draw</div>
+                        <div class="score">0</div>
+                    </div>
+                    <div class="card o">
+                        <div class="teamLabel">Team O</div>
+                        <div class="score">0</div>
+                    </div>
+                </div>
+                <div class="matchBoard__history">
+                    <p class="moveHistory">Move History</p>
+                    <div class="history" data-history="false"> No History Yet</div>
+                </div>
+            </div>
+            <div class="matchPanel__footer">
+                <p class="footer__text">Made with love 💖</p>
+                <p class="footer__credits"> &copy; 2025. All Rights Reserved <a href="http://github.com/Bleu24"> Bleu24 </a></p>
+            </div>            
         </div>
     </div>
     

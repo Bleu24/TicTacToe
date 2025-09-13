@@ -1,28 +1,142 @@
-document.addEventListener('DOMContentLoaded', () => {
+const board = document.querySelector('.board');
+const cells = document.querySelectorAll('.cell');
 
-    const board = document.querySelector('.board');
-    const cells = document.querySelectorAll('.cell');
 
-    const Game = (function() {
+// Gameboard Module
+const Gameboard = (function() {
+    const board = [
+        [{ input: '' }, { input: '' }, { input: '' }],
+        [{ input: '' }, { input: '' }, { input: '' }],
+        [{ input: '' }, { input: '' }, { input: '' }]
+    ];
 
+    const getBoard = () => board.map(row => row.map(cell => ({ input: cell.input })));
+    const isEmpty = (posX, posY) => board[posX][posY].input === '';
+
+    const place = function (posX, posY, marker) {
+        try {
+            const outOfBounds = (posX > 2 || posY > 2) || (posX < 0 || posY < 0);
+
+            if(typeof posX !== 'number' && typeof posY !== 'number') {
+                throw `Invalid data type`;
+            }
+
+            if(outOfBounds) {
+                throw `Cell (${posX},${posY}) is out of bounds`;
+            }
+
+            if(!isEmpty(posX, posY)) {
+                throw `Cell (${posX},${posY}) already occupied!`;
+            }
+
+            if ((marker !== 'X' && marker !== 'O') || typeof marker !== 'string') {
+                throw `Wrong marker: ${marker}`;
+            }
+            
+            board[posX][posY].input = marker;
+            return true;    
+
+        } catch (error) {
+            console.log(error);
+            return;
+        }
+    }
+
+    const reset = function() {
+        board.forEach(row => row.forEach(cell => cell.input = ''));
+    }
+
+
+    return { getBoard, place, reset, isEmpty };
+
+})();
+
+// Game module
+const Game = (function() {
     let isRoundWon = false;
     let hasStart = false;
-    let currentTurn = 'X'; //first turn
+    let currentTurn = 'X';
+    let gameMode = '';
     
-
     const moveHistory = [];
     const scoreHistory = [];
     const playerPool = new Map();
 
-    let board = [
-        [{ id: '', input: '' }, { id: '', input: '' }, { id: '', input: '' }],
-        [{ id: '', input: '' }, { id: '', input: '' }, { id: '', input: '' }],
-        [{ id: '', input: '' }, { id: '', input: '' }, { id: '', input: '' }]
-    ];
 
-    function createPlayer(name, team) {
+    const applyMove = function(posX, posY, player) {
+        if (!hasStart || isRoundWon) {
+            return;
+        }
+
+        const success = Gameboard.place(posX, posY, player.team);
+        if (success) {
+            moveHistory.push({ name: player.name, posX, posY });
+            currentTurn = currentTurn === 'X' ? 'O' : 'X';
+            checkWinner();
+        }
+    }
+    
+    const start = (players, mode = 'PvAI') => {
+
+        hasStart = true;
+        gameMode = mode;
+        
+        Gameboard.reset();
+        moveHistory.length = 0;
+        isRoundWon = false;
+        currentTurn = 'X';
+    };
+    
+    function checkWinner() {
+        const boardCopy = Gameboard.getBoard();
+        const lastMove = moveHistory.at(-1);
+        let winner = '';
+
+        if (lastMove === null || lastMove === undefined) {
+            return;
+        }
+
+        if(isRoundWon) {
+            return;
+        }
+        
+        for (let i = 0; i < 3; i++) {
+            //Horizontal Check
+            if(!Gameboard.isEmpty(i,0) && boardCopy[i][0].input === boardCopy[i][1].input && boardCopy[i][1].input === boardCopy[i][2].input) {
+                isRoundWon = true;
+                return;
+            }
+
+            // Vertical Check
+            if(!Gameboard.isEmpty(0,i) && boardCopy[0][i].input === boardCopy[1][i].input && boardCopy[1][i].input === boardCopy[2][i].input) {
+                isRoundWon = true;
+                return; 
+            }
+        }
+
+        //Diagonal Checks
+        if(!Gameboard.isEmpty(0,0) && boardCopy[0][0].input === boardCopy[1][1].input && boardCopy[1][1].input === boardCopy[2][2].input) {
+            isRoundWon = true;
+            return;
+        }
+
+        if(!Gameboard.isEmpty(0,2) && boardCopy[0][2].input === boardCopy[1][1].input && boardCopy[1][1].input === boardCopy[2][0].input) {
+            isRoundWon = true;
+            return;
+        } 
+
+        if (moveHistory.length === 9 && !isRoundWon) {
+            console.log('No winners! It\'s a tie.');
+            return;
+        }
+    }
+    
+    return { applyMove, start, checkWinner };
+})();
 
 
+// Player factory
+function createPlayer(name, team) {
         const id = crypto.randomUUID();
 
         if (team === '' || typeof team !== 'string' || typeof name !== 'string' || name === '') { 
@@ -34,166 +148,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         } 
 
+        const player = { id, name, team, requestMove };
+
         function requestMove(posX,posY) { 
-            applyMove(posX, posY, id); 
+            applyMove(posX, posY, player); 
         }
 
-        const player = { name, team };
+        playerPool.set(id, player);
 
-        playerPool.set(id, player)
+        return player;
+}
 
-        return { ...player, requestMove };
-    }
-
-    function restartGame() {
-        isRoundWon = false;
-        board = [ 
-            [{ id: '', input: '' }, { id: '', input: '' }, { id: '', input: '' }],
-            [{ id: '', input: '' }, { id: '', input: '' }, { id: '', input: '' }],
-            [{ id: '', input: '' }, { id: '', input: '' }, { id: '', input: '' }]
-        ];
-    }
-
-    // Checks the board
-    function checkBoard() {
-        const lastMove = moveHistory.at(-1);
-
-        if (lastMove === null || lastMove === undefined) {
-            return;
-        }
-
-        if(isRoundWon) {
-            return;
-        }
-
-        const lastName = lastMove.name;
-
-         
-
-        for (let i = 0; i < 3; i++) {
-            
-            //Horizontal Check
-            if(board[i][0].input !== '' && board[i][0].input === board[i][1].input && board[i][1].input === board[i][2].input) {
-                console.log(`Row ${i + 1} has winner finished by ${lastName}`);
-                isRoundWon = true;
-                break;
-            } else {
-                console.log(`Row ${i + 1} no match`);
-            }
-
-            // Vertical Check
-            if(board[0][i].input !== '' && board[0][i].input === board[1][i].input && board[1][i].input === board[2][i].input) {
-                console.log(`Column ${i + 1 } has winner finished by ${lastName}`);
-                isRoundWon = true;
-                break;
-            } else {
-                console.log(`Column ${i + 1 } no match`);
-            }
-        }
-
-        //Diagonal Checks
-        if(board[0][0].input !== '' && board[0][0].input === board[1][1].input && board[1][1].input === board[2][2].input) {
-            console.log(`Main diagonal has winner finished by ${lastName}`);
-            isRoundWon = true;
-            return;
-        } else {
-            console.log('Main diagonal no match');
-        }
-        
-        if(board[0][2].input !== '' && board[0][2].input === board[1][1].input && board[1][1].input === board[2][0].input) {
-            console.log(`Anti-diagonal has winner finished by ${lastName}`);
-            isRoundWon = true;
-            return;
-        } else {
-            console.log('Anti-diagonal no match');
-        }
-
-        let hasTie = false;
-
-        //Tie conditions
-        if(moveHistory.length === 9 && !isRoundWon) {
-            hasTie = true;
-        }
-
-        if (hasTie) {
-            console.log('No winners!')
-            return;
-        }
-
-
-
-
-    }
-
-    function applyMove(posX, posY, id) {
-        try {
-            const lastMove = moveHistory.at(-1);
-            const outOfBounds = (posX > 2 || posY > 2) || (posX < 0 || posY < 0);
-
-            if(outOfBounds) {
-                throw `Cell (${posX},${posY}) is out of bounds`;
-            }
-
-            const isCellEmpty = board[posX][posY].input === '';
-
-            if(!isCellEmpty) {
-                throw `Cell (${posX},${posY}) occupied by Player: ${lastMove.name}`;
-            }
-            
-            const isIdAvailable = id !== '' && id !== null && id !== undefined && playerPool.has(id);
-
-             if(!isIdAvailable) {
-                throw `player id is ${id}`;
-            }
-
-            if(isRoundWon) {
-                throw `Game is already finished! Please start a new game`;
-            }
-
-            if(isCellEmpty && !outOfBounds && !isRoundWon && isIdAvailable) { // Board can safely write if conditions are met
-                
-                if (currentTurn === 'X' && playerPool.get(id).team === 'X') {
-                    board[posX][posY] = { id, ...playerPool.get(id), input: 'X' };
-                    moveHistory.push({ id, ...playerPool.get(id), input: 'X' });
-                    checkBoard();
-                    currentTurn = 'O';
-                    return;
-                } else {
-                    console.log(`Player ${playerPool.get(id).name} is team O`);
-                }
-                
-                
-                if (currentTurn === 'O' && playerPool.get(id).team === 'O') {
-                    board[posX][posY] = { id, ...playerPool.get(id), input: 'O' };
-                    moveHistory.push({ id, ...playerPool.get(id), input: 'O' });
-                    checkBoard();
-                    currentTurn = 'X';
-                    return;
-                } else {
-                    console.log(`Player ${playerPool.get(id).name} is team X`);
-                }
-            
-            }
-
-        } catch (error) {
-            console.log(error);
-        }
-        
-    }
-
-    function securePlayers() {
-        
-    }
-
-    
-    
-    return { currentTurn, createPlayer, checkBoard, applyMove, hasStart };
-
-    })();
-
-
-
-    board.addEventListener('click', e => {
+board.addEventListener('click', e => {
 
         if(!Game.hasStart) {
 
@@ -212,10 +178,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 Game.currentTurn = 'X';
             }
         }
-    })
+})
 
     
-
-});
 
 

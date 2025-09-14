@@ -51,6 +51,33 @@ const Gameboard = (function() {
 
 })();
 
+// AI Module
+const AI = (function() {
+    const board = Gameboard.getBoard();
+
+    const getEmptyCells = () => {
+        const empty = [];
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++ ) {
+                if (board[i][j].input === '') {
+                    empty.push({ row: i, col: j });
+                }
+            }
+        }
+        return empty;
+    };
+
+
+    const noobMove = (aiMarker, humanMarker) => {
+        const empty = getEmptyCells();
+        return empty.length ? empty[Math.floor(Math.random() * empty.length)] : null;
+    }
+
+
+
+
+})();
+
 // Game module
 const Game = (function() {
     let isRoundWon = false;
@@ -103,31 +130,35 @@ const Game = (function() {
         for (let i = 0; i < 3; i++) {
             //Horizontal Check
             if(!Gameboard.isEmpty(i,0) && boardCopy[i][0].input === boardCopy[i][1].input && boardCopy[i][1].input === boardCopy[i][2].input) {
+                winner = boardCopy[i][0].input;
                 isRoundWon = true;
-                return;
+                return winner;
             }
 
             // Vertical Check
             if(!Gameboard.isEmpty(0,i) && boardCopy[0][i].input === boardCopy[1][i].input && boardCopy[1][i].input === boardCopy[2][i].input) {
+                winner = boardCopy[0][i].input;
                 isRoundWon = true;
-                return; 
+                return winner; 
             }
         }
 
         //Diagonal Checks
         if(!Gameboard.isEmpty(0,0) && boardCopy[0][0].input === boardCopy[1][1].input && boardCopy[1][1].input === boardCopy[2][2].input) {
+            winner = boardCopy[0][0].input;
             isRoundWon = true;
-            return;
+            return winner;
         }
 
         if(!Gameboard.isEmpty(0,2) && boardCopy[0][2].input === boardCopy[1][1].input && boardCopy[1][1].input === boardCopy[2][0].input) {
+            winner = boardCopy[0][2].input;
             isRoundWon = true;
-            return;
+            return winner;
         } 
 
         if (moveHistory.length === 9 && !isRoundWon) {
             console.log('No winners! It\'s a tie.');
-            return;
+            return winner;
         }
     }
     

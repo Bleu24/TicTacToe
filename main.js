@@ -53,9 +53,9 @@ const Gameboard = (function() {
 
 // AI Module
 const AI = (function() {
-    const board = Gameboard.getBoard();
 
     const getEmptyCells = () => {
+        const board = Gameboard.getBoard();
         const empty = [];
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++ ) {
@@ -67,10 +67,120 @@ const AI = (function() {
         return empty;
     };
 
+    const isWinning = (board, marker) => {
+        // rows & cols
+        for (let i = 0; i < 3; i++) {
+            if (board[i][0].input === marker && board[i][1].input === marker && board[i][2].input === marker) {
+                return true;
+            } 
+            if (board[0][i].input === marker && board[1][i].input === marker && board[2][i].input === marker) {
+                return true;
+            }
+        }
+        // diagonals
+        if (board[0][0].input === marker && board[1][1].input === marker && board[2][2].input === marker) {
+            return true;
+        }
+        if (board[0][2].input === marker && board[1][1].input === marker && board[2][0].input === marker) {
+            return true;
+        }
+        return false;
+    }
 
-    const noobMove = (aiMarker, humanMarker) => {
+
+    const easyMove = () => {
         const empty = getEmptyCells();
         return empty.length ? empty[Math.floor(Math.random() * empty.length)] : null;
+    }
+
+    //Heuristic AI
+    const mediumMove = (aiMarker, humanMarker) => {
+        const empty = getEmptyCells();
+        const board = Gameboard.getBoard();
+
+        if(!empty.length) {
+            return null;
+        }
+
+        if (empty[1][1].input === '') {
+            return { row: 1, col: 1};
+        }
+
+        //Check for wins and return coords
+        for (const cell of empty) {
+            const simBoard = Gameboard.getBoard();
+            simBoard[cell.row][cell.col].input = aiMarker
+            if(isWinning(simBoard, aiMarker)) {
+                return cell;
+            };
+        }
+
+        //return cell for a winning human
+        for (const cell of empty) {
+            const simBoard = Gameboard.getBoard();
+            simBoard[cell.row][cell.col].input = humanMarker
+            if(isWinning(simBoard, humanMarker)) {
+                return cell;
+            };
+        }
+
+        const corners = [
+            { row: 0, col: 0, opp: { row: 2, col: 2 } },
+            { row: 0, col: 2, opp: { row: 2, col: 0 } },
+            { row: 2, col: 0, opp: { row: 0, col: 2 } },
+            { row: 2, col: 2, opp: { row: 0, col: 0 } },
+        ];
+
+        for (const cell of corners) {
+            if(board[cell.row][cell.col].input === humanMarker && board[cell.opp.row][cell.opp.col] === '') {
+                return { row: cell.opp.row, col: cell.opp.col };
+            }
+        }
+
+        //returns the first empty corner
+        for (const cell of corners) {
+            if(board[cell.row][cell.col].input === '') {
+                return { row: cell.row, col: cell.col };
+            }
+        }
+
+        return easyMove(aiMarker, humanMarker);
+    }
+
+
+    const minimax = (board, isMaximizing, aiMarker, humanMarker) => {
+        const empty = getEmptyCells();
+    
+        if (isWinning(board, aiMarker)) {
+            return 1;
+        }
+
+        if (isWinning(board, humanMarker)) {
+            return -1;
+        }
+
+        if (getEmptyCells().length === 0) {
+            return 0; 
+        }
+
+
+        if(isMaximizing){
+            let best = -Infinity;
+            for (const cell of empty) {
+                board[cell.row][cell.col].input = aiMarker;
+                best = Math.max(best, minimax(board, false, aiMarker, humanMarker));
+                board[cell.row][cell.col].input = '';
+            }
+            return best;
+        } else {
+            let best = Infinity;
+            for (const cell of empty) {
+                board[cell.row][cell.col].input = humanMarker;
+                best = Math.min(best, minimax(board, false, aiMarker, humanMarker));
+                board[cell.row][cell.col].input = '';
+            }
+            return best;
+        }
     }
 
 
@@ -101,7 +211,12 @@ const Game = (function() {
             currentTurn = currentTurn === 'X' ? 'O' : 'X';
             checkWinner();
         }
-    }
+
+        if (!winner && gameMode === 'PvAI' && currentTurn === aiPlayer.team) {
+            const move = AI.easyMove(aiPlayer.team, humanPlayer.team); 
+            if (move) applyMove(move.row, move.col, aiPlayer);
+        }
+    };
     
     const start = (players, mode = 'PvAI') => {
 

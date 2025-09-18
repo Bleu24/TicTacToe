@@ -38,7 +38,7 @@ const Gameboard = (function() {
 
         } catch (error) {
             console.log(error);
-            return;
+            return false;
         }
     }
 
@@ -85,16 +85,16 @@ const AI = (function() {
             return true;
         }
         return false;
-    }
+    };
 
 
     const easyMove = () => {
         const empty = getEmptyCells();
         return empty.length ? empty[Math.floor(Math.random() * empty.length)] : null;
-    }
+    };
 
     //Heuristic AI
-    const mediumMove = (aiMarker, humanMarker) => {
+    const normalMove = (aiMarker, humanMarker) => {
         const empty = getEmptyCells();
         const board = Gameboard.getBoard();
 
@@ -145,7 +145,7 @@ const AI = (function() {
         }
 
         return easyMove(aiMarker, humanMarker);
-    }
+    };
 
 
     const minimax = (board, isMaximizing, aiMarker, humanMarker) => {
@@ -176,57 +176,96 @@ const AI = (function() {
             let best = Infinity;
             for (const cell of empty) {
                 board[cell.row][cell.col].input = humanMarker;
-                best = Math.min(best, minimax(board, false, aiMarker, humanMarker));
+                best = Math.min(best, minimax(board, true, aiMarker, humanMarker));
                 board[cell.row][cell.col].input = '';
             }
             return best;
         }
-    }
+    };
 
+    const hardMove = (aiMarker, humanMarker) => {
+        const empty = getEmptyCells();
+        const board = Gameboard.getBoard();
 
+        let bestVal = -Infinity;
+        let bestCell = null;
 
+        for (const cell of empty) {
+            board[cell.row][cell.col].input = aiMarker;
+            const cellVal = minimax(board, false, aiMarker, humanMarker);
+            board[cell.row][cell.col].input = '';
+
+            if (cellVal > bestVal) {
+                bestVal = cellVal;
+                bestCell = cell;
+            }
+        }
+
+        return bestCell;
+    };
+
+    return { easyMove, normalMove, hardMove }
 
 })();
 
 // Game module
 const Game = (function() {
+    let humanPlayer = null;
+    let aiPlayer = null;
     let isRoundWon = false;
     let hasStart = false;
     let currentTurn = 'X';
     let gameMode = '';
-    
+    let aiDiff = '';
     const moveHistory = [];
     const scoreHistory = [];
-    const playerPool = new Map();
+    
 
 
     const applyMove = function(posX, posY, player) {
         if (!hasStart || isRoundWon) {
-            return;
+            return false;
         }
 
         const success = Gameboard.place(posX, posY, player.team);
+
         if (success) {
             moveHistory.push({ name: player.name, posX, posY });
             currentTurn = currentTurn === 'X' ? 'O' : 'X';
             checkWinner();
         }
 
-        if (!winner && gameMode === 'PvAI' && currentTurn === aiPlayer.team) {
+        if (gameMode === 'PvAI' && aiDiff === 'easy' && currentTurn === aiPlayer.team) {
             const move = AI.easyMove(aiPlayer.team, humanPlayer.team); 
+            if (move) applyMove(move.row, move.col, aiPlayer);
+        }
+
+        if (gameMode === 'PvAI' && aiDiff === 'normal' && currentTurn === aiPlayer.team) {
+            const move = AI.mediumMove(aiPlayer.team, humanPlayer.team); 
+            if (move) applyMove(move.row, move.col, aiPlayer);
+        }
+
+        if (gameMode === 'PvAI' && aiDiff === 'hard' && currentTurn === aiPlayer.team) {
+            const move = AI.minimax(aiPlayer.team, humanPlayer.team); 
             if (move) applyMove(move.row, move.col, aiPlayer);
         }
     };
     
-    const start = (players, mode = 'PvAI') => {
-
+    const start = (players = [], mode = 'PvAI', aiDiff = 'normal') => {
         hasStart = true;
         gameMode = mode;
-        
         Gameboard.reset();
         moveHistory.length = 0;
         isRoundWon = false;
         currentTurn = 'X';
+
+        if (Array.isArray(players) && players.length === 2) {
+            humanPlayer = players[0];
+            aiPlayer = players[1];
+        } else {
+            humanPlayer = null;
+            aiPlayer = null;
+        }
     };
     
     function checkWinner() {

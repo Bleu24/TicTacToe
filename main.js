@@ -1,5 +1,5 @@
-const board = document.querySelector('.board');
-const cells = document.querySelectorAll('.cell');
+// Shared player registry (used by createPlayer and Game)
+const playerPool = new Map();
 
 
 // Gameboard Module
@@ -54,8 +54,7 @@ const Gameboard = (function() {
 // AI Module
 const AI = (function() {
 
-    const getEmptyCells = () => {
-        const board = Gameboard.getBoard();
+    const getEmptyCells = (board = Gameboard.getBoard()) => {
         const empty = [];
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++ ) {
@@ -88,40 +87,41 @@ const AI = (function() {
     };
 
 
-    const easyMove = () => {
-        const empty = getEmptyCells();
+    const easyMove = (board = Gameboard.getBoard()) => {
+        const empty = getEmptyCells(board);
         return empty.length ? empty[Math.floor(Math.random() * empty.length)] : null;
     };
 
     //Heuristic AI
-    const normalMove = (aiMarker, humanMarker) => {
-        const empty = getEmptyCells();
-        const board = Gameboard.getBoard();
+    const normalMove = (board, aiMarker, humanMarker) => {
+        const empty = getEmptyCells(board);
 
         if(!empty.length) {
             return null;
         }
 
-        if (empty[1][1].input === '') {
+        if (board[1][1].input === '') {
             return { row: 1, col: 1};
         }
 
         //Check for wins and return coords
         for (const cell of empty) {
-            const simBoard = Gameboard.getBoard();
-            simBoard[cell.row][cell.col].input = aiMarker
-            if(isWinning(simBoard, aiMarker)) {
+            board[cell.row][cell.col].input = aiMarker
+            if(isWinning(board, aiMarker)) {
+                board[cell.row][cell.col].input = '';
                 return cell;
             };
+            board[cell.row][cell.col].input = '';
         }
 
         //return cell for a winning human
         for (const cell of empty) {
-            const simBoard = Gameboard.getBoard();
-            simBoard[cell.row][cell.col].input = humanMarker
-            if(isWinning(simBoard, humanMarker)) {
+            board[cell.row][cell.col].input = humanMarker
+            if(isWinning(board, humanMarker)) {
+                board[cell.row][cell.col].input = '';
                 return cell;
             };
+            board[cell.row][cell.col].input = '';
         }
 
         const corners = [
@@ -132,25 +132,22 @@ const AI = (function() {
         ];
 
         for (const cell of corners) {
-            if(board[cell.row][cell.col].input === humanMarker && board[cell.opp.row][cell.opp.col] === '') {
+            if(board[cell.row][cell.col].input === humanMarker && board[cell.opp.row][cell.opp.col].input === '') {
                 return { row: cell.opp.row, col: cell.opp.col };
             }
-        }
 
-        //returns the first empty corner
-        for (const cell of corners) {
             if(board[cell.row][cell.col].input === '') {
                 return { row: cell.row, col: cell.col };
             }
         }
 
-        return easyMove(aiMarker, humanMarker);
+        return easyMove(board);
     };
 
 
     const minimax = (board, isMaximizing, aiMarker, humanMarker) => {
-        const empty = getEmptyCells();
-    
+        const empty = getEmptyCells(board);
+
         if (isWinning(board, aiMarker)) {
             return 1;
         }
@@ -159,7 +156,7 @@ const AI = (function() {
             return -1;
         }
 
-        if (getEmptyCells().length === 0) {
+        if (empty.length === 0) {
             return 0; 
         }
 
@@ -183,9 +180,8 @@ const AI = (function() {
         }
     };
 
-    const hardMove = (aiMarker, humanMarker) => {
-        const empty = getEmptyCells();
-        const board = Gameboard.getBoard();
+    const hardMove = (board, aiMarker, humanMarker) => {
+        const empty = getEmptyCells(board);
 
         let bestVal = -Infinity;
         let bestCell = null;
@@ -210,6 +206,7 @@ const AI = (function() {
 
 // Game module
 const Game = (function() {
+    let round = 0;
     let humanPlayer = null;
     let aiPlayer = null;
     let isRoundWon = false;
@@ -219,10 +216,46 @@ const Game = (function() {
     let aiDiff = '';
     const moveHistory = [];
     const scoreHistory = [];
-    
 
+    //config factory
+    const start = (players = playerPool, mode = 'PvAI', aiDiffParam = 'normal') => {
+
+        if(players.size === 0 ) {
+            console.log("Create players first"); 
+            return;
+        }
+
+        if(mode === 'PvAI' && players.size === 1) {
+            const [humanId, humanPlayerObj] = players.entries().next().value;
+            const aiId = crypto.randomUUID();
+            const aiTeam = humanPlayerObj.team === 'X' ? 'O' : 'X';
+            const aiPlayerObj = { id: aiId, name: 'AI', team: aiTeam };
+            players.set(aiId, aiPlayerObj);
+
+            humanPlayer = humanPlayerObj;
+            aiPlayer = aiPlayerObj;
+        } else if(mode === 'PvP' && players.size === 2) {
+            const [player1, player2] = players.values();
+            humanPlayer = player1;
+            aiPlayer = null;
+        }
+        
+        round = 0;
+        hasStart = true;
+        gameMode = mode;
+        aiDiff = aiDiffParam;
+        Gameboard.reset();
+        moveHistory.length = 0;
+        isRoundWon = false;
+        currentTurn = 'X';
+
+        return { currentTurn, round, gameMode, hasStart, isRoundWon }
+
+    };
 
     const applyMove = function(posX, posY, player) {
+        const board = Gameboard.getBoard();
+
         if (!hasStart || isRoundWon) {
             return false;
         }
@@ -231,45 +264,28 @@ const Game = (function() {
 
         if (success) {
             moveHistory.push({ name: player.name, posX, posY });
+            const hasWinner = checkWinner();
+
+            if(hasWinner) {
+                console.log(`${hasWinner} wins!`);
+                return true;
+            }
+
             currentTurn = currentTurn === 'X' ? 'O' : 'X';
-            checkWinner();
         }
 
-        if (gameMode === 'PvAI' && aiDiff === 'easy' && currentTurn === aiPlayer.team) {
-            const move = AI.easyMove(aiPlayer.team, humanPlayer.team); 
-            if (move) applyMove(move.row, move.col, aiPlayer);
-        }
-
-        if (gameMode === 'PvAI' && aiDiff === 'normal' && currentTurn === aiPlayer.team) {
-            const move = AI.mediumMove(aiPlayer.team, humanPlayer.team); 
-            if (move) applyMove(move.row, move.col, aiPlayer);
-        }
-
-        if (gameMode === 'PvAI' && aiDiff === 'hard' && currentTurn === aiPlayer.team) {
-            const move = AI.minimax(aiPlayer.team, humanPlayer.team); 
-            if (move) applyMove(move.row, move.col, aiPlayer);
-        }
-    };
-    
-    const start = (players = [], mode = 'PvAI', aiDiff = 'normal') => {
-        hasStart = true;
-        gameMode = mode;
-        Gameboard.reset();
-        moveHistory.length = 0;
-        isRoundWon = false;
-        currentTurn = 'X';
-
-        if (Array.isArray(players) && players.length === 2) {
-            humanPlayer = players[0];
-            aiPlayer = players[1];
-        } else {
-            humanPlayer = null;
-            aiPlayer = null;
+        if (gameMode === 'PvAI' && currentTurn === aiPlayer.team) {
+            setTimeout(() => {
+                const move = aiDiff === 'easy' ? AI.easyMove(board)
+                            : aiDiff === 'normal' ? AI.normalMove(board,aiPlayer.team, humanPlayer.team)
+                            : AI.hardMove(board, aiPlayer.team, humanPlayer.team);
+                if (move) applyMove(move.row, move.col, aiPlayer);
+            }, 500); // 500ms delay
         }
     };
     
     function checkWinner() {
-        const boardCopy = Gameboard.getBoard();
+        const board = Gameboard.getBoard();
         const lastMove = moveHistory.at(-1);
         let winner = '';
 
@@ -283,40 +299,41 @@ const Game = (function() {
         
         for (let i = 0; i < 3; i++) {
             //Horizontal Check
-            if(!Gameboard.isEmpty(i,0) && boardCopy[i][0].input === boardCopy[i][1].input && boardCopy[i][1].input === boardCopy[i][2].input) {
-                winner = boardCopy[i][0].input;
+            if(!Gameboard.isEmpty(i,0) && board[i][0].input === board[i][1].input && board[i][1].input === board[i][2].input) {
+                winner = board[i][0].input;
                 isRoundWon = true;
                 return winner;
             }
 
             // Vertical Check
-            if(!Gameboard.isEmpty(0,i) && boardCopy[0][i].input === boardCopy[1][i].input && boardCopy[1][i].input === boardCopy[2][i].input) {
-                winner = boardCopy[0][i].input;
+            if(!Gameboard.isEmpty(0,i) && board[0][i].input === board[1][i].input && board[1][i].input === board[2][i].input) {
+                winner = board[0][i].input;
                 isRoundWon = true;
                 return winner; 
             }
         }
 
         //Diagonal Checks
-        if(!Gameboard.isEmpty(0,0) && boardCopy[0][0].input === boardCopy[1][1].input && boardCopy[1][1].input === boardCopy[2][2].input) {
-            winner = boardCopy[0][0].input;
+        if(!Gameboard.isEmpty(0,0) && board[0][0].input === board[1][1].input && board[1][1].input === board[2][2].input) {
+            winner = board[0][0].input;
             isRoundWon = true;
             return winner;
         }
 
-        if(!Gameboard.isEmpty(0,2) && boardCopy[0][2].input === boardCopy[1][1].input && boardCopy[1][1].input === boardCopy[2][0].input) {
-            winner = boardCopy[0][2].input;
+        if(!Gameboard.isEmpty(0,2) && board[0][2].input === board[1][1].input && board[1][1].input === board[2][0].input) {
+            winner = board[0][2].input;
             isRoundWon = true;
             return winner;
         } 
 
         if (moveHistory.length === 9 && !isRoundWon) {
             console.log('No winners! It\'s a tie.');
-            return winner;
+            isRoundWon = true; //semantic issue
+            return 'tie';
         }
     }
     
-    return { applyMove, start, checkWinner };
+    return { start, applyMove, checkWinner };
 })();
 
 
@@ -333,38 +350,46 @@ function createPlayer(name, team) {
             return;
         } 
 
-        const player = { id, name, team, requestMove };
-
         function requestMove(posX,posY) { 
-            applyMove(posX, posY, player); 
+            // delegate to Game.applyMove so game logic is centralized
+            const success = Game.applyMove(posX, posY, playerPool.get(id)); 
+            if(!success) {
+                console.log(`Invalid move by ${name} at (${posX}, ${posY})`);
+            }
+            return success;
         }
 
+        const player = { id, name, team, requestMove };
         playerPool.set(id, player);
-
         return player;
 }
 
-board.addEventListener('click', e => {
 
-        if(!Game.hasStart) {
 
+const UI = (function() {
+
+    const config = Game.start();
+    const gamePanel = document.querySelector('.gamePanel');
+    const moveHistory = document.querySelector('.history');
+    const cardX = document.querySelector('.card.x');
+    const cardDraw = document.querySelector('.card.draw');
+    const cardO = document.querySelector('.card.o');
+    const turn = document.querySelector('.label:nth-child(1)');
+    const round = document.querySelector('.label:nth-child(2)');
+    const mode = document.querySelector('.label:nth-child(3)');
+    const reset = document.querySelector('.reset');
+    const start = document.querySelector('.newGame');
+    const modal = document.querySelector('.bg-modal');
+    const form = document.querySelector('.gameMode');
+
+    gamePanel.addEventListener('click', (e) => {
+        if(e.target.closest('.newGame')) {
+            console.log('I was clicked');
         }
 
-        const cell = e.target.closest('.cell');
-        if(cell) {
-            const row = parseInt(cell.getAttribute('data-row') - 1);
-            const col = parseInt(cell.getAttribute('data-col') - 1);
-
-            if(Game.currentTurn === 'X') {
-                cell.textContent = 'X';
-                Game.currentTurn = 'O';
-            } else {
-                cell.textContent = 'O';
-                Game.currentTurn = 'X';
-            }
-        }
-})
-
-    
 
 
+    });
+
+
+})();

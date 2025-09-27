@@ -305,11 +305,11 @@ a {
     gap: var(--small-gap);
 }
 
-.gameMode > h1 {
+.gameMode>h1 {
     font-family: var(--body);
 }
 
-.gameMode .btns button{
+.gameMode .btns button {
     font-family: var(--kanit);
 }
 

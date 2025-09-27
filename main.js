@@ -590,7 +590,7 @@ const UI = (function () {
                     <button class="notification__exit">X</button>
                 </div> `;
 
-                document.body.appendChild(notification);
+        document.body.appendChild(notification);
 
         turnLabel.textContent = `Turn: ${gameState.currentTurn}`;
         roundLabel.textContent = `Round: ${gameState.round}`;

@@ -1,0 +1,395 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
+
+:root {
+    /* colors */
+    --black: #0f0f11;
+    --zinc-950: #111115;
+    --zinc-900: #16161a;
+    --zinc-100: #f4f4f5;
+    --zinc-200: #e4e4e7;
+    --zinc-300: #d4d4d8;
+    --zinc-400: #a1a1aa;
+    --zinc-500: #71717a;
+    --cyan-400: #22d3ee;
+    --emerald-400: #34d399;
+    --violet-400: #a78bfa;
+    --fuchsia-400: #e879f9;
+    --amber-400: #fbbf24;
+    --rose-400: #fb7185;
+    --white-90: rgba(255, 255, 255, 0.9);
+    --white-80: rgba(255, 255, 255, 0.8);
+    --white-20: rgba(255, 255, 255, 0.2);
+    --white-10: rgba(255, 255, 255, 0.1);
+    --white-5: rgba(255, 255, 255, 0.05);
+    --cyan-400-20: rgba(34, 211, 238, 0.2);
+    --cyan-400-40: rgba(34, 211, 238, 0.4);
+    --cyan-400-70: rgba(34, 211, 238, 0.7);
+    --indian-red: rgba(230, 95, 92);
+    --indian-red-70: rgba(230, 94, 92, 0.61);
+    --celadon: rgba(181, 217, 156);
+
+
+    /* spacing */
+    --tiny-gap: 0.5rem;
+    --small-gap: 1rem;
+    --small-med-gap: 1.5rem;
+    --med-gap: 2rem;
+    --med-large-gap: 2.5rem;
+    --large-gap: 3rem;
+
+    /* panel heights */
+    --height-50: 50px;
+    --height-100: 100px;
+    --height-500: 500px;
+    --height-600: 600px;
+
+
+    /* panel widths */
+    --width-500: 500px;
+    --width-600: 600px;
+
+    /* fonts */
+    --body: "Ubuntu", sans-serif;
+    --kanit: "Kanit";
+
+}
+
+.app {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: var(--black);
+    color: var(--white-90);
+    font-family: var(--body);
+    gap: var(--med-gap);
+}
+
+.gamePanel {
+    min-height: var(--height-600);
+    min-width: var(--width-500);
+    display: flex;
+    flex-direction: column;
+    border: 1px var(--zinc-500) solid;
+    border-radius: 1.5rem;
+    background-color: var(--zinc-900);
+}
+
+.gameHeader,
+.matchHeader {
+    display: flex;
+    height: var(--height-50);
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px var(--zinc-500) solid;
+    padding: 1rem;
+    font-weight: 500;
+}
+
+.subtitle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.status[data-status="notStart"] {
+    height: 10px;
+    width: 10px;
+    border-radius: 999px;
+    background-color: var(--rose-400);
+}
+
+.status[data-status="Start"] {
+    height: 10px;
+    width: 10px;
+    border-radius: 999px;
+    background-color: var(--emerald-400);
+}
+
+.subheader {
+    padding: 1rem;
+    height: var(--height-100);
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    border-bottom: 1px var(--zinc-500) solid;
+    background-color: var(--zinc-950);
+    font-size: 0.875rem;
+    gap: 2rem
+}
+
+.label {
+    color: var(--zinc-500);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.board {
+    flex-grow: 1;
+    padding: 1.5rem;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: var(--tiny-gap)
+}
+
+.cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px var(--zinc-500) solid;
+    border-radius: 1.5rem;
+    padding: 1rem;
+    background-color: var(--zinc-950);
+    font-size: 2rem;
+}
+
+button {
+    border: 1px var(--zinc-500) solid;
+    border-radius: 1.5rem;
+    padding: 2px;
+    width: 60px;
+    background-color: var(--zinc-950);
+    color: white;
+}
+
+.cell:hover,
+button:hover {
+    cursor: pointer;
+    animation-name: cellHover;
+    animation-duration: 200ms;
+    animation-fill-mode: forwards;
+}
+
+@keyframes cellHover {
+    from {
+        background-color: var(--zinc-950);
+    }
+
+    to {
+        background-color: var(--zinc-900);
+    }
+}
+
+
+
+/* Match panel */
+
+.matchPanel {
+    min-height: var(--height-600);
+    min-width: var(--width-600);
+    display: flex;
+    flex-direction: column;
+    border: 1px var(--zinc-500) solid;
+    border-radius: 1.5rem;
+    background-color: var(--zinc-900);
+}
+
+.matchBoard {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: 1fr 2fr;
+}
+
+.matchPanel__footer {
+    flex-shrink: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-top: 1px var(--zinc-500) solid;
+}
+
+a {
+    text-decoration: none;
+    color: white;
+    font-style: italic;
+}
+
+.footer__credits {
+    font-size: 12px;
+    color: var(--zinc-500)
+}
+
+.matchBoard__cards {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: center;
+    justify-items: center;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    width: 80%;
+    height: 100px;
+    border: 1px var(--zinc-500) solid;
+    padding: 0.875rem;
+    border-radius: 1rem;
+}
+
+.score {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    font-size: 2rem;
+}
+
+.teamLabel {
+    color: var(--zinc-400);
+    font-size: 12px;
+}
+
+.matchBoard__history {
+    grid-column: 1 / -1;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+
+.moveHistory {
+    color: var(--zinc-500);
+}
+
+.history {
+    height: 80%;
+    border: 1px var(--zinc-500) solid;
+    background-color: var(--zinc-950);
+    border-radius: 1rem;
+}
+
+.history[data-history="false"] {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    content: "No History Yet";
+    color: var(--zinc-500);
+    font-size: 14px;
+    font-style: italic;
+}
+
+/* Modal */
+
+.bg-modal {
+    position: absolute;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    top: 0;
+    left: 0;
+    width: 100dvw;
+    height: 100dvh;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.gameMode {
+    font-family: var(--kanit);
+    color: var(--zinc-100);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--small-gap);
+}
+
+.gameMode > h1 {
+    font-family: var(--body);
+}
+
+.gameMode .btns button{
+    font-family: var(--kanit);
+}
+
+.modalForm {
+    padding: var(--small-gap);
+    font-family: var(--body);
+    color: var(--zinc-100);
+    display: flex;
+    background-color: var(--zinc-950);
+    border: 1px var(--zinc-500) solid;
+    border-radius: 1rem;
+    width: var(--width-500);
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+button[type="submit"] {
+    width: 100px;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.modalForm>button[type="button"] {
+    border-radius: 5px;
+    width: 30px;
+    height: 30px;
+    align-self: flex-end;
+}
+
+.form-field {
+    font-family: var(--kanit);
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+}
+
+.form-row {
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+}
+
+input {
+    padding: 5px;
+}
+
+
+/* Notification */
+.notification {
+    font-family: var(--kanit);
+    color: var(--zinc-100);
+    padding: 2rem;
+    position: absolute;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 50px;
+    width: 50dvw;
+    top: 50px;
+    left: 25%;
+    border-radius: 1rem;
+    border: 1px var(--zinc-500) solid;
+}
+
+.notification__exit {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.green {
+    color: var(--zinc-950);
+    background-color: var(--celadon);
+}
+
+.red {
+    color: var(--zinc-950);
+    background-color: var(--indian-red-70);
+}

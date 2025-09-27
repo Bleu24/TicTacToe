@@ -24,6 +24,10 @@
     --cyan-400-20: rgba(34, 211, 238, 0.2);
     --cyan-400-40: rgba(34, 211, 238, 0.4);
     --cyan-400-70: rgba(34, 211, 238, 0.7);
+    --indian-red: rgba(230, 95, 92);
+    --indian-red-70: rgba(230, 94, 92, 0.61);
+    --celadon: rgba(181, 217, 156);
+
 
     /* spacing */
     --tiny-gap: 0.5rem;
@@ -46,6 +50,7 @@
 
     /* fonts */
     --body: "Ubuntu", sans-serif;
+    --kanit: "Kanit";
 
 }
 
@@ -70,7 +75,8 @@
     background-color: var(--zinc-900);
 }
 
-.gameHeader, .matchHeader {
+.gameHeader,
+.matchHeader {
     display: flex;
     height: var(--height-50);
     justify-content: space-between;
@@ -125,8 +131,8 @@
     padding: 1.5rem;
     height: 100%;
     display: grid;
-    grid-template-columns: repeat(3,1fr);
-    grid-template-rows: repeat(3,1fr);
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
     gap: var(--tiny-gap)
 }
 
@@ -145,12 +151,13 @@ button {
     border: 1px var(--zinc-500) solid;
     border-radius: 1.5rem;
     padding: 2px;
-    width:60px;
+    width: 60px;
     background-color: var(--zinc-950);
     color: white;
 }
 
-.cell:hover, button:hover {
+.cell:hover,
+button:hover {
     cursor: pointer;
     animation-name: cellHover;
     animation-duration: 200ms;
@@ -158,8 +165,13 @@ button {
 }
 
 @keyframes cellHover {
-    from {background-color: var(--zinc-950);}
-    to {background-color: var(--zinc-900);}
+    from {
+        background-color: var(--zinc-950);
+    }
+
+    to {
+        background-color: var(--zinc-900);
+    }
 }
 
 
@@ -247,7 +259,7 @@ a {
 
 .history {
     height: 80%;
-    border: 1px var(--zinc-500) solid ;
+    border: 1px var(--zinc-500) solid;
     background-color: var(--zinc-950);
     border-radius: 1rem;
 }
@@ -274,23 +286,110 @@ a {
     left: 0;
     width: 100dvw;
     height: 100dvh;
-    background-color: rgba(0,0,0,0.7);
+    background-color: rgba(0, 0, 0, 0.7);
 }
 
 .modal {
-    font-family: var(--body);
-    color: var(--zinc-100);
-    height: 250px;
-    width: 500px;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
 .gameMode {
+    font-family: var(--kanit);
+    color: var(--zinc-100);
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
+    gap: var(--small-gap);
+}
+
+.gameMode > h1 {
+    font-family: var(--body);
+}
+
+.gameMode .btns button{
+    font-family: var(--kanit);
+}
+
+.modalForm {
+    padding: var(--small-gap);
+    font-family: var(--body);
+    color: var(--zinc-100);
+    display: flex;
+    background-color: var(--zinc-950);
+    border: 1px var(--zinc-500) solid;
+    border-radius: 1rem;
+    width: var(--width-500);
+    flex-direction: column;
     align-items: center;
     gap: 20px;
+}
+
+button[type="submit"] {
+    width: 100px;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.modalForm>button[type="button"] {
+    border-radius: 5px;
+    width: 30px;
+    height: 30px;
+    align-self: flex-end;
+}
+
+.form-field {
+    font-family: var(--kanit);
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+}
+
+.form-row {
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+}
+
+input {
+    padding: 5px;
+}
+
+
+/* Notification */
+.notification {
+    font-family: var(--kanit);
+    color: var(--zinc-100);
+    padding: 2rem;
+    position: absolute;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 50px;
+    width: 50dvw;
+    top: 50px;
+    left: 25%;
+    border-radius: 1rem;
+    border: 1px var(--zinc-500) solid;
+}
+
+.notification__exit {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.green {
+    color: var(--zinc-950);
+    background-color: var(--celadon);
+}
+
+.red {
+    color: var(--zinc-950);
+    background-color: var(--indian-red-70);
 }

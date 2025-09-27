@@ -3,7 +3,7 @@ const playerPool = new Map();
 
 
 // Gameboard Module
-const Gameboard = (function() {
+const Gameboard = (function () {
     const board = [
         [{ input: '' }, { input: '' }, { input: '' }],
         [{ input: '' }, { input: '' }, { input: '' }],
@@ -17,24 +17,25 @@ const Gameboard = (function() {
         try {
             const outOfBounds = (posX > 2 || posY > 2) || (posX < 0 || posY < 0);
 
-            if(typeof posX !== 'number' && typeof posY !== 'number') {
+            if (typeof posX !== 'number' && typeof posY !== 'number') {
                 throw `Invalid data type`;
             }
 
-            if(outOfBounds) {
+            if (outOfBounds) {
                 throw `Cell (${posX},${posY}) is out of bounds`;
             }
 
-            if(!isEmpty(posX, posY)) {
+            if (!isEmpty(posX, posY)) {
                 throw `Cell (${posX},${posY}) already occupied!`;
             }
 
             if ((marker !== 'X' && marker !== 'O') || typeof marker !== 'string') {
                 throw `Wrong marker: ${marker}`;
             }
-            
+
             board[posX][posY].input = marker;
-            return true;    
+
+            return true;
 
         } catch (error) {
             console.log(error);
@@ -42,7 +43,7 @@ const Gameboard = (function() {
         }
     }
 
-    const reset = function() {
+    const reset = function () {
         board.forEach(row => row.forEach(cell => cell.input = ''));
     }
 
@@ -52,12 +53,12 @@ const Gameboard = (function() {
 })();
 
 // AI Module
-const AI = (function() {
+const AI = (function () {
 
     const getEmptyCells = (board = Gameboard.getBoard()) => {
         const empty = [];
         for (let i = 0; i < 3; i++) {
-            for (let j = 0; j < 3; j++ ) {
+            for (let j = 0; j < 3; j++) {
                 if (board[i][j].input === '') {
                     empty.push({ row: i, col: j });
                 }
@@ -71,7 +72,7 @@ const AI = (function() {
         for (let i = 0; i < 3; i++) {
             if (board[i][0].input === marker && board[i][1].input === marker && board[i][2].input === marker) {
                 return true;
-            } 
+            }
             if (board[0][i].input === marker && board[1][i].input === marker && board[2][i].input === marker) {
                 return true;
             }
@@ -96,18 +97,18 @@ const AI = (function() {
     const normalMove = (board, aiMarker, humanMarker) => {
         const empty = getEmptyCells(board);
 
-        if(!empty.length) {
+        if (!empty.length) {
             return null;
         }
 
         if (board[1][1].input === '') {
-            return { row: 1, col: 1};
+            return { row: 1, col: 1 };
         }
 
         //Check for wins and return coords
         for (const cell of empty) {
             board[cell.row][cell.col].input = aiMarker
-            if(isWinning(board, aiMarker)) {
+            if (isWinning(board, aiMarker)) {
                 board[cell.row][cell.col].input = '';
                 return cell;
             };
@@ -117,7 +118,7 @@ const AI = (function() {
         //return cell for a winning human
         for (const cell of empty) {
             board[cell.row][cell.col].input = humanMarker
-            if(isWinning(board, humanMarker)) {
+            if (isWinning(board, humanMarker)) {
                 board[cell.row][cell.col].input = '';
                 return cell;
             };
@@ -132,11 +133,11 @@ const AI = (function() {
         ];
 
         for (const cell of corners) {
-            if(board[cell.row][cell.col].input === humanMarker && board[cell.opp.row][cell.opp.col].input === '') {
+            if (board[cell.row][cell.col].input === humanMarker && board[cell.opp.row][cell.opp.col].input === '') {
                 return { row: cell.opp.row, col: cell.opp.col };
             }
 
-            if(board[cell.row][cell.col].input === '') {
+            if (board[cell.row][cell.col].input === '') {
                 return { row: cell.row, col: cell.col };
             }
         }
@@ -157,11 +158,11 @@ const AI = (function() {
         }
 
         if (empty.length === 0) {
-            return 0; 
+            return 0;
         }
 
 
-        if(isMaximizing){
+        if (isMaximizing) {
             let best = -Infinity;
             for (const cell of empty) {
                 board[cell.row][cell.col].input = aiMarker;
@@ -205,10 +206,12 @@ const AI = (function() {
 })();
 
 // Game module
-const Game = (function() {
+const Game = (function () {
     let round = 0;
     let humanPlayer = null;
     let aiPlayer = null;
+    let humanPlayer1 = null;
+    let humanPlayer2 = null;
     let isRoundWon = false;
     let hasStart = false;
     let currentTurn = 'X';
@@ -218,14 +221,14 @@ const Game = (function() {
     const scoreHistory = [];
 
     //config factory
-    const start = (players = playerPool, mode = 'PvAI', aiDiffParam = 'normal') => {
+    const start = (players = playerPool, mode, aiDiffParam = 'none') => {
 
-        if(players.size === 0 ) {
-            console.log("Create players first"); 
+        if (players.size === 0) {
+            console.log("Create players first");
             return;
         }
 
-        if(mode === 'PvAI' && players.size === 1) {
+        if (mode === 'PvAI' && players.size === 1) {
             const [humanId, humanPlayerObj] = players.entries().next().value;
             const aiId = crypto.randomUUID();
             const aiTeam = humanPlayerObj.team === 'X' ? 'O' : 'X';
@@ -234,12 +237,13 @@ const Game = (function() {
 
             humanPlayer = humanPlayerObj;
             aiPlayer = aiPlayerObj;
-        } else if(mode === 'PvP' && players.size === 2) {
+        } else if (mode === 'PvP' && players.size === 2) {
             const [player1, player2] = players.values();
-            humanPlayer = player1;
+            const humanPlayer1 = player1;
+            const humanPlayer2 = player2;
             aiPlayer = null;
         }
-        
+
         round = 0;
         hasStart = true;
         gameMode = mode;
@@ -248,12 +252,9 @@ const Game = (function() {
         moveHistory.length = 0;
         isRoundWon = false;
         currentTurn = 'X';
-
-        return { currentTurn, round, gameMode, hasStart, isRoundWon }
-
     };
 
-    const applyMove = function(posX, posY, player) {
+    const applyMove = function (posX, posY, player) {
         const board = Gameboard.getBoard();
 
         if (!hasStart || isRoundWon) {
@@ -264,9 +265,10 @@ const Game = (function() {
 
         if (success) {
             moveHistory.push({ name: player.name, posX, posY });
+            UI.updateBoardContent(board);
             const hasWinner = checkWinner();
 
-            if(hasWinner) {
+            if (hasWinner) {
                 console.log(`${hasWinner} wins!`);
                 return true;
             }
@@ -277,14 +279,14 @@ const Game = (function() {
         if (gameMode === 'PvAI' && currentTurn === aiPlayer.team) {
             setTimeout(() => {
                 const move = aiDiff === 'easy' ? AI.easyMove(board)
-                            : aiDiff === 'normal' ? AI.normalMove(board,aiPlayer.team, humanPlayer.team)
-                            : AI.hardMove(board, aiPlayer.team, humanPlayer.team);
+                    : aiDiff === 'normal' ? AI.normalMove(board, aiPlayer.team, humanPlayer.team)
+                        : AI.hardMove(board, aiPlayer.team, humanPlayer.team);
                 if (move) applyMove(move.row, move.col, aiPlayer);
-            }, 500); // 500ms delay
+            }, 500);
         }
     };
-    
-    function checkWinner() {
+
+    const checkWinner = () => {
         const board = Gameboard.getBoard();
         const lastMove = moveHistory.at(-1);
         let winner = '';
@@ -293,103 +295,308 @@ const Game = (function() {
             return;
         }
 
-        if(isRoundWon) {
+        if (isRoundWon) {
             return;
         }
-        
+
         for (let i = 0; i < 3; i++) {
             //Horizontal Check
-            if(!Gameboard.isEmpty(i,0) && board[i][0].input === board[i][1].input && board[i][1].input === board[i][2].input) {
+            if (!Gameboard.isEmpty(i, 0) && board[i][0].input === board[i][1].input && board[i][1].input === board[i][2].input) {
                 winner = board[i][0].input;
                 isRoundWon = true;
                 return winner;
             }
 
             // Vertical Check
-            if(!Gameboard.isEmpty(0,i) && board[0][i].input === board[1][i].input && board[1][i].input === board[2][i].input) {
+            if (!Gameboard.isEmpty(0, i) && board[0][i].input === board[1][i].input && board[1][i].input === board[2][i].input) {
                 winner = board[0][i].input;
                 isRoundWon = true;
-                return winner; 
+                return winner;
             }
         }
 
         //Diagonal Checks
-        if(!Gameboard.isEmpty(0,0) && board[0][0].input === board[1][1].input && board[1][1].input === board[2][2].input) {
+        if (!Gameboard.isEmpty(0, 0) && board[0][0].input === board[1][1].input && board[1][1].input === board[2][2].input) {
             winner = board[0][0].input;
             isRoundWon = true;
             return winner;
         }
 
-        if(!Gameboard.isEmpty(0,2) && board[0][2].input === board[1][1].input && board[1][1].input === board[2][0].input) {
+        if (!Gameboard.isEmpty(0, 2) && board[0][2].input === board[1][1].input && board[1][1].input === board[2][0].input) {
             winner = board[0][2].input;
             isRoundWon = true;
             return winner;
-        } 
+        }
 
         if (moveHistory.length === 9 && !isRoundWon) {
             console.log('No winners! It\'s a tie.');
-            isRoundWon = true; //semantic issue
+            isRoundWon = true;
             return 'tie';
         }
     }
-    
-    return { start, applyMove, checkWinner };
+
+    const getState = () => {
+        return { currentTurn, round, gameMode, hasStart, isRoundWon };
+    }
+
+
+    return { start, applyMove, checkWinner, getState };
 })();
 
 
 // Player factory
 function createPlayer(name, team) {
-        const id = crypto.randomUUID();
+    const id = crypto.randomUUID();
 
-        if (team === '' || typeof team !== 'string' || typeof name !== 'string' || name === '') { 
-            console.log('Please double check input');
-            return;
+    if (team === '' || typeof team !== 'string' || typeof name !== 'string' || name === '') {
+        console.log('Please double check input');
+        return;
+    }
+
+    if (team !== 'X' && team !== 'O') {
+        return;
+    }
+
+    function requestMove(posX, posY) {
+        // delegate to Game.applyMove so game logic is centralized
+        const success = Game.applyMove(posX, posY, playerPool.get(id));
+        if (!success) {
+            console.log(`Invalid move by ${name} at (${posX}, ${posY})`);
         }
+        return success;
+    }
 
-        if (team !== 'X' && team !== 'O') {
-            return;
-        } 
-
-        function requestMove(posX,posY) { 
-            // delegate to Game.applyMove so game logic is centralized
-            const success = Game.applyMove(posX, posY, playerPool.get(id)); 
-            if(!success) {
-                console.log(`Invalid move by ${name} at (${posX}, ${posY})`);
-            }
-            return success;
-        }
-
-        const player = { id, name, team, requestMove };
-        playerPool.set(id, player);
-        return player;
+    const player = { id, name, team, requestMove };
+    playerPool.set(id, player);
+    return player;
 }
 
+// UI MODULE
 
-
-const UI = (function() {
-
-    const config = Game.start();
-    const gamePanel = document.querySelector('.gamePanel');
-    const moveHistory = document.querySelector('.history');
-    const cardX = document.querySelector('.card.x');
-    const cardDraw = document.querySelector('.card.draw');
-    const cardO = document.querySelector('.card.o');
-    const turn = document.querySelector('.label:nth-child(1)');
-    const round = document.querySelector('.label:nth-child(2)');
-    const mode = document.querySelector('.label:nth-child(3)');
-    const reset = document.querySelector('.reset');
-    const start = document.querySelector('.newGame');
+const UI = (function () {
+    // Cache DOM elements
     const modal = document.querySelector('.bg-modal');
-    const form = document.querySelector('.gameMode');
+    const gamePanel = document.querySelector('.gamePanel');
+    const cells = document.querySelectorAll('.cell');
+    const app = document.querySelector('.app');
+    const gameModeModal = document.querySelector('.gameMode');
+    const notification = document.createElement('div');
+    const modalForm = document.createElement('form');
+    const turnLabel = document.querySelector('.turn');
+    const roundLabel = document.querySelector('.round');
+    const modeLabel = document.querySelector('.mode');
+    const status = document.querySelector('.status');
 
-    gamePanel.addEventListener('click', (e) => {
-        if(e.target.closest('.newGame')) {
-            console.log('I was clicked');
+
+
+    function updateBoardContent(board) {
+        cells.forEach((cell, index) => {
+            const row = Math.floor(index / 3);
+            const col = index % 3;
+
+            cell.textContent = board[row][col].input;
+        })
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            modal.style.display = 'none';
+        }
+    });
+
+    modal.addEventListener('click', e => {
+
+        if (e.target.closest('.form__exit')) {
+            modalForm.remove();
+            gameModeModal.style.display = 'flex';
+
         }
 
 
+        if (e.target.closest('.pvpBtn') && !document.querySelector('.modalForm')) {
+            gameModeModal.style.display = 'none';
+
+            modalForm.innerHTML = `
+                    <button type="button" class="form__exit">X</button>
+                    <h1 class="form__title">Enter names:</h1>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="playerName1">Player 1 (X): </label>
+                            <input type="text" id="playerName1" name="playerName1" placeholder="e.g. Bleu24" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="playerName2">Player 2 (O): </label>
+                            <input type="text" id="playerName2" name="playerName2" placeholder="e.g. NoobMaster69" required>
+                        </div>
+                    </div>
+                    <button type="submit">Play</button>
+            `;
+            modalForm.classList.add('modalForm');
+            modalForm.dataset.type = 'PvP';
+            modal.appendChild(modalForm);
+        }
+
+        if (e.target.closest('.pvaiBtn') && !document.querySelector('.modalForm')) {
+            gameModeModal.style.display = 'none';
+
+            modalForm.innerHTML = `
+            <button type="button" class="form__exit">X</button>
+            <h1 class="form__title">Set game configuration:</h1>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="playerName">Player name: </label>
+                    <input type="text" id="playerName" name="playerName" placeholder="e.g. Bleu24" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="teamBtns">
+                    <label for="teamName">Set Team:</label>
+                    <input type="hidden" id="teamName" name="teamName">
+                    <button type="button" data-team="X">Team X</button>
+                    <button type="button" data-team="O">Team O</button>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="aiDiffs">
+                    <label for="aiDifficulty">Set AI Difficulty:</label>
+                    <input type="hidden" id="aiDifficulty" name="aiDifficulty">
+                    <button type="button" data-diff="easy">Easy</button>
+                    <button type="button" data-diff="normal">Normal</button>
+                    <button type="button" data-diff="hard">Hard</button>
+                </div>
+            </div>
+            <button type="submit">Play</button>
+    `;
+            modalForm.classList.add('modalForm');
+            modalForm.dataset.type = 'PvAI';
+            modal.appendChild(modalForm);
+
+            const teamInput = modalForm.querySelector('#teamName');
+            const aiDiffInput = modalForm.querySelector('#aiDifficulty');
+            const teamButtons = modalForm.querySelectorAll('.teamBtns button');
+            const aiDiffButtons = modalForm.querySelectorAll('.aiDiffs button');
+
+            teamButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    teamInput.value = btn.dataset.team;
+                    // Optional: visually indicate selection
+                    teamButtons.forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                });
+            });
+
+            aiDiffButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    aiDiffInput.value = btn.dataset.diff;
+                    // Optional: visually indicate selection
+                    aiDiffButtons.forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                });
+            });
+        }
 
     });
 
+    modalForm.addEventListener('submit', e => {
+        e.preventDefault();
 
+        const gameForm = new FormData(modalForm);
+
+        if (modalForm.dataset.type === 'PvAI') {
+            const playerName = gameForm.get('playerName');
+            const mode = modalForm.dataset.type;
+            const team = gameForm.get('teamName');
+            const aiDiffMode = gameForm.get('aiDifficulty');
+
+            const p = createPlayer(playerName, team);
+
+            if (playerPool.has(p.id)) {
+                Game.start(playerPool, mode, aiDiffMode);
+
+                const startEvent = new CustomEvent('gameStart', { detail: Game.getState() });
+                app.dispatchEvent(startEvent);
+
+                console.log("Game Initiated!");
+            } else {
+                console.log('Error occured!');
+            }
+
+
+        }
+
+        if (modalForm.dataset.type === 'PvP') {
+            const pN1 = gameForm.get("playerName1");
+            const pN2 = gameForm.get("playerName2");
+            const mode = modalForm.dataset.type;
+
+            const player1 = createPlayer(pN1, 'X');
+            const player2 = createPlayer(pN2, 'O');
+
+            if (playerPool.has(player1.id) && playerPool.has(player2.id)) {
+                Game.start(playerPool, mode);
+
+                const startEvent = new CustomEvent('gameStart', { detail: Game.getState(), bubbles: true });
+                app.dispatchEvent(startEvent);
+
+                console.log("Game Initiated!");
+            } else {
+                console.log("Error occured!");
+            }
+
+        }
+    });
+
+
+    gamePanel.addEventListener('click', e => {
+        const gameState = Game.getState();
+        if (e.target.closest('.cell') && !gameState.hasStart) {
+            if (!document.body.querySelector('.notification')) {
+
+                notification.innerHTML = `
+                <!-- Notif -->
+                <div class="notification red">
+                    <p class="notification__text">Create Player first</p>
+                    <button class="notification__exit">X</button>
+                </div> `;
+
+                document.body.appendChild(notification);
+            }
+        } else if (e.target.closest('.cell') && gameState.hasStart) {
+            gameState.currentTurn === 'X' ? e.target.closest('.cell').textContent = 'X' : e.target.closest('.cell').textContent = 'O';
+        }
+
+        if (e.target.closest('.newGame')) {
+            modal.style.display = 'flex';
+        }
+
+    });
+
+    notification.addEventListener('click', e => {
+        if (e.target.closest('.notification__exit')) {
+            notification.remove();
+        }
+    })
+
+    app.addEventListener('gameStart', e => {
+        const gameState = Game.getState();
+
+        modal.remove();
+
+        status.dataset.status = 'Start';
+        notification.innerHTML = `
+                <!-- Notif -->
+                <div class="notification green">
+                    <p class="notification__text">Game Initialized!</p>
+                    <button class="notification__exit">X</button>
+                </div> `;
+
+                document.body.appendChild(notification);
+
+        turnLabel.textContent = `Turn: ${gameState.currentTurn}`;
+        roundLabel.textContent = `Round: ${gameState.round}`;
+        modeLabel.textContent = `Mode: ${gameState.gameMode}`
+    })
+
+    // Public API
+    return { updateBoardContent };
 })();

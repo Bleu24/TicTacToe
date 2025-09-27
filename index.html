@@ -14,14 +14,14 @@
         <div class="gamePanel">
             <div class="gameHeader">
                 <div class="gameTitle">Tic-Tac-Toe</div>
-                <div class="subtitle"> 
+                <div class="subtitle">
                     <div class="status" data-status="notStart"></div> v0.0.1
                 </div>
             </div>
             <div class="subheader">
-                <div class="label">Turn: </div>
-                <div class="label">Round: </div>
-                <div class="label">Mode: </div> <!-- PVP or PvAI -->
+                <div class="turn label">Turn: </div>
+                <div class="round label">Round: </div>
+                <div class="mode label">Mode: </div> <!-- PVP or PvAI -->
                 <button class="reset">Reset</button>
                 <button class="newGame">Start</button>
             </div>
@@ -34,7 +34,7 @@
                 <div class="cell" data-row="2" data-col="3"></div>
                 <div class="cell" data-row="3" data-col="1"></div>
                 <div class="cell" data-row="3" data-col="2"></div>
-                <div class="cell" data-row="3" data-col="3"></div>    
+                <div class="cell" data-row="3" data-col="3"></div>
             </div>
         </div>
 
@@ -64,8 +64,9 @@
             </div>
             <div class="matchPanel__footer">
                 <p class="footer__text">Made with love 💖</p>
-                <p class="footer__credits"> &copy; 2025. All Rights Reserved <a href="http://github.com/Bleu24"> Bleu24 </a></p>
-            </div>            
+                <p class="footer__credits"> &copy; 2025. All Rights Reserved <a href="http://github.com/Bleu24"> Bleu24
+                    </a></p>
+            </div>
         </div>
     </div>
 
@@ -73,15 +74,19 @@
     <!-- Modal -->
     <div class="bg-modal">
         <div class="modal">
-            <form action="?" class="gameMode">
+            <div class="gameMode">
                 <h1>Choose Game Mode</h1>
-                <div class="controls">
-                    <button class="PvP">PvP</button>
-                    <button class="PvAI">PvAI</button>
+                <div class="btns">
+                    <button class="pvpBtn">PvP</button>
+                    <button class="pvaiBtn">PvAI</button>
                 </div>
-            </form>
+            </div>
         </div>
-    </div>  
-    
+    </div>
+
 </body>
+
 </html>
+
+
+

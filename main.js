@@ -234,16 +234,14 @@ const Game = (function () {
             const aiTeam = humanPlayerObj.team === 'X' ? 'O' : 'X';
             const aiPlayerObj = { id: aiId, name: 'AI', team: aiTeam };
             players.set(aiId, aiPlayerObj);
-
             humanPlayer = humanPlayerObj;
             aiPlayer = aiPlayerObj;
         } else if (mode === 'PvP' && players.size === 2) {
-            const [player1, player2] = players.values();
-            const humanPlayer1 = player1;
-            const humanPlayer2 = player2;
-            aiPlayer = null;
+            const [p1, p2] = players.values();
+            humanPlayer1 = p1;
+            humanPlayer2 = p2;
         }
-
+        // Common reset for either mode
         round = 0;
         hasStart = true;
         gameMode = mode;
@@ -254,18 +252,30 @@ const Game = (function () {
         currentTurn = 'X';
     };
 
-    const applyMove = function (posX, posY, player) {
-        const board = Gameboard.getBoard();
+    const getCurrentPlayer = () => {
+        if (gameMode === 'PvAI') {
+            if (!humanPlayer || !aiPlayer) return null;
+            return currentTurn === humanPlayer.team ? humanPlayer : aiPlayer;
+        }
+        if (gameMode === 'PvP') {
+            if (!humanPlayer1 || !humanPlayer2) return null;
+            return currentTurn === humanPlayer1.team ? humanPlayer1 : humanPlayer2;
+        }
+        return null;
+    };
+
+    const applyMove = function (posX, posY) {
 
         if (!hasStart || isRoundWon) {
             return false;
         }
 
-        const success = Gameboard.place(posX, posY, player.team);
+        const player = getCurrentPlayer();
+        const success = Gameboard.place(posX, posY, currentTurn);
 
         if (success) {
-            moveHistory.push({ name: player.name, posX, posY });
-            UI.updateBoardContent(board);
+            moveHistory.push({ name: (player && player.name) ? player.name : currentTurn, posX, posY });
+            UI.updateBoardContent(Gameboard.getBoard());
             const hasWinner = checkWinner();
 
             if (hasWinner) {
@@ -276,12 +286,13 @@ const Game = (function () {
             currentTurn = currentTurn === 'X' ? 'O' : 'X';
         }
 
-        if (gameMode === 'PvAI' && currentTurn === aiPlayer.team) {
+        if (gameMode === 'PvAI' && aiPlayer && humanPlayer && currentTurn === aiPlayer.team) {
             setTimeout(() => {
+                const board = Gameboard.getBoard();
                 const move = aiDiff === 'easy' ? AI.easyMove(board)
                     : aiDiff === 'normal' ? AI.normalMove(board, aiPlayer.team, humanPlayer.team)
                         : AI.hardMove(board, aiPlayer.team, humanPlayer.team);
-                if (move) applyMove(move.row, move.col, aiPlayer);
+                if (move) applyMove(move.row, move.col);
             }, 500);
         }
     };
@@ -289,6 +300,7 @@ const Game = (function () {
     const checkWinner = () => {
         const board = Gameboard.getBoard();
         const lastMove = moveHistory.at(-1);
+        let winningCells = null;
         let winner = '';
 
         if (lastMove === null || lastMove === undefined) {
@@ -303,6 +315,8 @@ const Game = (function () {
             //Horizontal Check
             if (!Gameboard.isEmpty(i, 0) && board[i][0].input === board[i][1].input && board[i][1].input === board[i][2].input) {
                 winner = board[i][0].input;
+                winningCells = { cell1: { row: i, col: 0 }, cell2: { row: i, col: 1 }, cell3: { row: i, col: 2 } };
+                UI.highlightGridWinner(winningCells);
                 isRoundWon = true;
                 return winner;
             }
@@ -310,6 +324,8 @@ const Game = (function () {
             // Vertical Check
             if (!Gameboard.isEmpty(0, i) && board[0][i].input === board[1][i].input && board[1][i].input === board[2][i].input) {
                 winner = board[0][i].input;
+                winningCells = { cell1: { row: 0, col: i }, cell2: { row: 1, col: i }, cell3: { row: 2, col: i } };
+                UI.highlightGridWinner(winningCells);
                 isRoundWon = true;
                 return winner;
             }
@@ -318,12 +334,16 @@ const Game = (function () {
         //Diagonal Checks
         if (!Gameboard.isEmpty(0, 0) && board[0][0].input === board[1][1].input && board[1][1].input === board[2][2].input) {
             winner = board[0][0].input;
+            winningCells = { cell1: { row: 0, col: 0 }, cell2: { row: 1, col: 1 }, cell3: { row: 2, col: 2 } };
+            UI.highlightGridWinner(winningCells);
             isRoundWon = true;
             return winner;
         }
 
         if (!Gameboard.isEmpty(0, 2) && board[0][2].input === board[1][1].input && board[1][1].input === board[2][0].input) {
             winner = board[0][2].input;
+            winningCells = { cell1: { row: 0, col: 2 }, cell2: { row: 1, col: 1 }, cell3: { row: 2, col: 0 } };
+            UI.highlightGridWinner(winningCells);
             isRoundWon = true;
             return winner;
         }
@@ -357,16 +377,7 @@ function createPlayer(name, team) {
         return;
     }
 
-    function requestMove(posX, posY) {
-        // delegate to Game.applyMove so game logic is centralized
-        const success = Game.applyMove(posX, posY, playerPool.get(id));
-        if (!success) {
-            console.log(`Invalid move by ${name} at (${posX}, ${posY})`);
-        }
-        return success;
-    }
-
-    const player = { id, name, team, requestMove };
+    const player = { id, name, team };
     playerPool.set(id, player);
     return player;
 }
@@ -388,6 +399,16 @@ const UI = (function () {
     const status = document.querySelector('.status');
 
 
+    function highlightGridWinner(winningCells) {
+        const winningCellsList = Array.from(cells).filter(el => {
+            return Object.values(winningCells).some(winningCell => {
+                return Number(el.dataset.row) === winningCell.row && Number(el.dataset.col) === winningCell.col;
+            });
+        });
+
+        // Add a highlight class to the winning cells
+        winningCellsList.forEach(cell => cell.classList.add('highlight'));
+    }
 
     function updateBoardContent(board) {
         cells.forEach((cell, index) => {
@@ -557,12 +578,14 @@ const UI = (function () {
                 <div class="notification red">
                     <p class="notification__text">Create Player first</p>
                     <button class="notification__exit">X</button>
-                </div> `;
+                </div>`;
 
                 document.body.appendChild(notification);
+                autoRemoveNotification(); // Automatically remove this notification after a timeout
             }
         } else if (e.target.closest('.cell') && gameState.hasStart) {
-            gameState.currentTurn === 'X' ? e.target.closest('.cell').textContent = 'X' : e.target.closest('.cell').textContent = 'O';
+            const cell = e.target.closest('.cell');
+            Game.applyMove(Number(cell.dataset.row), Number(cell.dataset.col));
         }
 
         if (e.target.closest('.newGame')) {
@@ -575,7 +598,16 @@ const UI = (function () {
         if (e.target.closest('.notification__exit')) {
             notification.remove();
         }
-    })
+    });
+
+    // Automatically remove notifications after a timeout
+    function autoRemoveNotification(timeout = 2500) {
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                notification.remove();
+            }
+        }, timeout);
+    }
 
     app.addEventListener('gameStart', e => {
         const gameState = Game.getState();
@@ -593,10 +625,14 @@ const UI = (function () {
         document.body.appendChild(notification);
 
         turnLabel.textContent = `Turn: ${gameState.currentTurn}`;
-        roundLabel.textContent = `Round: ${gameState.round}`;
+        roundLabel.textContent = `Round: ${gameState.round + 1}`;
         modeLabel.textContent = `Mode: ${gameState.gameMode}`
+
+        // Call autoRemoveNotification whenever a notification is added
+        document.body.appendChild(notification);
+        autoRemoveNotification();
     })
 
     // Public API
-    return { updateBoardContent };
+    return { updateBoardContent, highlightGridWinner };
 })();

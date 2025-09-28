@@ -136,6 +136,12 @@
     gap: var(--tiny-gap)
 }
 
+/* for winners */
+.cell.highlight {
+    background-color: var(--emerald-400);
+    /* color: var(--zinc-950); */
+}
+
 .cell {
     display: flex;
     justify-content: center;

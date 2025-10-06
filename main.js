@@ -284,6 +284,7 @@ const Game = (function () {
             }
 
             currentTurn = currentTurn === 'X' ? 'O' : 'X';
+            UI.updatePanelContent();
         }
 
         if (gameMode === 'PvAI' && aiPlayer && humanPlayer && currentTurn === aiPlayer.team) {
@@ -359,6 +360,8 @@ const Game = (function () {
         return { currentTurn, round, gameMode, hasStart, isRoundWon };
     }
 
+    //TODO: create a deep copy for moveHistory
+
 
     return { start, applyMove, checkWinner, getState };
 })();
@@ -397,7 +400,14 @@ const UI = (function () {
     const roundLabel = document.querySelector('.round');
     const modeLabel = document.querySelector('.mode');
     const status = document.querySelector('.status');
+    const moveHistory = document.querySelector('.matchBoard__history');
 
+    function updatePanelContent() {
+        const state = Game.getState();        
+        turnLabel.textContent = `Turn: ${state.currentTurn}`;
+        roundLabel.textContent = `Round: ${state.round + 1}`;
+        modeLabel.textContent = `Mode: ${state.gameMode}`;
+    }
 
     function highlightGridWinner(winningCells) {
         const winningCellsList = Array.from(cells).filter(el => {
@@ -531,6 +541,7 @@ const UI = (function () {
 
             const p = createPlayer(playerName, team);
 
+            //Check if player is created and registered in the pool
             if (playerPool.has(p.id)) {
                 Game.start(playerPool, mode, aiDiffMode);
 
@@ -542,6 +553,7 @@ const UI = (function () {
                 console.log('Error occured!');
             }
 
+    
 
         }
 
@@ -634,5 +646,5 @@ const UI = (function () {
     })
 
     // Public API
-    return { updateBoardContent, highlightGridWinner };
+    return { updatePanelContent, updateBoardContent, highlightGridWinner };
 })();

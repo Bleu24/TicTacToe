@@ -204,7 +204,7 @@ button:hover {
 .matchPanel__footer {
     flex-shrink: 1;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     padding: 1rem;
     border-top: 1px var(--zinc-500) solid;

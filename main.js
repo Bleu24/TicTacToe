@@ -507,6 +507,12 @@ const UI = (function () {
                             <input type="text" id="playerName2" name="playerName2" placeholder="e.g. NoobMaster69" required>
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for=rounds">How many rounds?: </label>
+                            <input type="number" id="rounds" name="rounds" placeholder="e.g. 3" min="1" required>
+                        </div>
+                    </div>
                     <button type="submit">Play</button>
             `;
             modalForm.classList.add('modalForm');
@@ -543,9 +549,16 @@ const UI = (function () {
                     <button type="button" data-diff="hard">Hard</button>
                 </div>
             </div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for=rounds">How many rounds?: </label>
+                    <input type="number" id="rounds" name="rounds" placeholder="e.g. 3" min="1" required>
+                </div>
+            </div>
             <button type="submit">Play</button>
     `;
             modalForm.classList.add('modalForm');
+            modalForm.classList.add('pvai');
             modalForm.dataset.type = 'PvAI';
             modal.appendChild(modalForm);
 

@@ -274,7 +274,7 @@ const Game = (function () {
         const success = Gameboard.place(posX, posY, currentTurn);
 
         if (success) {
-            moveHistory.push({ name: (player && player.name) ? player.name : currentTurn, posX, posY });
+            moveHistory.push({ name: (player && player.name) ? player.name : currentTurn, posX, posY, currentTurn });
             UI.updateBoardContent(Gameboard.getBoard());
             UI.updatePanelContent();
             const hasWinner = checkWinner();
@@ -296,8 +296,6 @@ const Game = (function () {
                         : AI.hardMove(board, aiPlayer.team, humanPlayer.team);
                 if (move) applyMove(move.row, move.col);
             }, 500);
-            moveHistory.push({ name: (player && player.name) ? player.name : currentTurn, posX, posY });
-            UI.updatePanelContent();
         }
     };
 
@@ -420,8 +418,9 @@ const UI = (function () {
     const roundLabel = document.querySelector('.round');
     const modeLabel = document.querySelector('.mode');
     const status = document.querySelector('.status');
-    const historyContainerNotShown = document.querySelector('.history[data-history="false"]')
-    const historyContainerShown = document.querySelector('.history[data-history="true"]');
+    const historyContainer = document.querySelector('.history[data-history="false"]');
+    const matchHistory = document.querySelector('.matchBoard__history');
+
 
     function updatePanelContent() {
         const state = Game.getState();
@@ -431,17 +430,27 @@ const UI = (function () {
         modeLabel.textContent = `Mode: ${state.gameMode}`;
 
         if (moveHistory && moveHistory.length !== 0) {
-            if (!historyContainerNotShown.dataset.history) {
-                const removed = historyContainerNotShown.parentNode.removeChild(historyContainerNotShown);
+            if (historyContainer.dataset.history === 'false') {
+                const removed = matchHistory.removeChild(historyContainer);
+                removed.innerHTML = '';
+                historyContainer.dataset.history = 'true';
+                matchHistory.appendChild(removed);
             }
 
-            historyContainerShown.style.display = 'grid';
-            const historyItem = `<div class="historyItem__number">${moveHistory.indexOf(moveHistory.at(-1) + 1)}</div>
-                            <div class="historyItem__name"> ${moveHistory.at(-1).player.name} </div>
-                            <div class="historyItem__move"> ${moveHistory.at(-1).player.team}  </div>
-                            <div class="historyItem__coords"> (${moveHistory.at(-1).posX}, ${moveHistory.at(-1).posY})   </div>`;
 
-            moveHistoryContainer.appendChild(historyItem);
+            historyContainer.style.display = 'grid';
+
+            const historyItem = document.createElement('div');
+            historyItem.classList.add('historyItem');
+            const last = moveHistory.at(-1);
+
+            historyItem.innerHTML = `<div class="historyItem__number">${moveHistory.length}</div>
+                            <div class="historyItem__name"> ${last.name} </div>
+                            <div class="historyItem__move"> ${last.currentTurn || ''}  </div>
+                            <div class="historyItem__coords"> (${last.posX + 1}, ${last.posY})   </div>`;
+
+
+            historyContainer.appendChild(historyItem);
         }
 
 

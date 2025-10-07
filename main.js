@@ -276,6 +276,7 @@ const Game = (function () {
         if (success) {
             moveHistory.push({ name: (player && player.name) ? player.name : currentTurn, posX, posY });
             UI.updateBoardContent(Gameboard.getBoard());
+            UI.updatePanelContent();
             const hasWinner = checkWinner();
 
             if (hasWinner) {
@@ -284,7 +285,7 @@ const Game = (function () {
             }
 
             currentTurn = currentTurn === 'X' ? 'O' : 'X';
-            UI.updatePanelContent();
+
         }
 
         if (gameMode === 'PvAI' && aiPlayer && humanPlayer && currentTurn === aiPlayer.team) {
@@ -295,6 +296,8 @@ const Game = (function () {
                         : AI.hardMove(board, aiPlayer.team, humanPlayer.team);
                 if (move) applyMove(move.row, move.col);
             }, 500);
+            moveHistory.push({ name: (player && player.name) ? player.name : currentTurn, posX, posY });
+            UI.updatePanelContent();
         }
     };
 
@@ -360,10 +363,27 @@ const Game = (function () {
         return { currentTurn, round, gameMode, hasStart, isRoundWon };
     }
 
-    //TODO: create a deep copy for moveHistory
+    const getMoveHistory = () => {
+        const deepCopy = [];
+
+        for (const element of moveHistory) {
+            if (element && typeof element === 'object') {
+                const newObj = {};
+                for (const key in element) {
+                    newObj[key] = element[key];
+                }
+                deepCopy.push(newObj);
+            }
+            else {
+                deepCopy.push(element);
+            }
+        }
+
+        return deepCopy;
+    }
 
 
-    return { start, applyMove, checkWinner, getState };
+    return { start, applyMove, checkWinner, getState, getMoveHistory };
 })();
 
 
@@ -400,13 +420,31 @@ const UI = (function () {
     const roundLabel = document.querySelector('.round');
     const modeLabel = document.querySelector('.mode');
     const status = document.querySelector('.status');
-    const moveHistory = document.querySelector('.matchBoard__history');
+    const historyContainerNotShown = document.querySelector('.history[data-history="false"]')
+    const historyContainerShown = document.querySelector('.history[data-history="true"]');
 
     function updatePanelContent() {
-        const state = Game.getState();        
+        const state = Game.getState();
+        const moveHistory = Game.getMoveHistory();
         turnLabel.textContent = `Turn: ${state.currentTurn}`;
         roundLabel.textContent = `Round: ${state.round + 1}`;
         modeLabel.textContent = `Mode: ${state.gameMode}`;
+
+        if (moveHistory && moveHistory.length !== 0) {
+            if (!historyContainerNotShown.dataset.history) {
+                const removed = historyContainerNotShown.parentNode.removeChild(historyContainerNotShown);
+            }
+
+            historyContainerShown.style.display = 'grid';
+            const historyItem = `<div class="historyItem__number">${moveHistory.indexOf(moveHistory.at(-1) + 1)}</div>
+                            <div class="historyItem__name"> ${moveHistory.at(-1).player.name} </div>
+                            <div class="historyItem__move"> ${moveHistory.at(-1).player.team}  </div>
+                            <div class="historyItem__coords"> (${moveHistory.at(-1).posX}, ${moveHistory.at(-1).posY})   </div>`;
+
+            moveHistoryContainer.appendChild(historyItem);
+        }
+
+
     }
 
     function highlightGridWinner(winningCells) {
@@ -553,7 +591,7 @@ const UI = (function () {
                 console.log('Error occured!');
             }
 
-    
+
 
         }
 

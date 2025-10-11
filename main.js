@@ -218,10 +218,11 @@ const Game = (function () {
     let gameMode = '';
     let aiDiff = '';
     const moveHistory = [];
-    const scoreHistory = [];
+    const scores = { X: 0, O: 0, draw: 0 };
+    let totalRounds = 1;
 
     //config factory
-    const start = (players = playerPool, mode, aiDiffParam = 'none') => {
+    const start = (players = playerPool, mode, aiDiffParam = 'none', rounds = 1) => {
 
         if (players.size === 0) {
             console.log("Create players first");
@@ -243,6 +244,10 @@ const Game = (function () {
         }
         // Common reset for either mode
         round = 0;
+        totalRounds = rounds || 1;
+        scores.X = 0;
+        scores.Y = 0;
+        scores.draw = 0;
         hasStart = true;
         gameMode = mode;
         aiDiff = aiDiffParam;
@@ -264,6 +269,31 @@ const Game = (function () {
         return null;
     };
 
+    const handleRoundEnd = (winner) => {
+
+        if (winner === 'X') {
+            scores.X++;
+        } else if (winner === 'Y') {
+            scores.Y++;
+        } else if (winner === 'tie') {
+            scores.draw++;
+        }
+
+        if (round + 1 < totalRounds) {
+            round++;
+            isRoundWon = false;
+            Gameboard.reset();
+            moveHistory.length = 0;
+            currentTurn = 'X';
+            UI.updateBoardContent(Gameboard.getBoard());
+            UI.updatePanelContent();
+        } else {
+            hasStart = false;
+            UI.updatePanelContent();
+            console.log('Match finished', scores);
+        }
+    }
+
     const applyMove = function (posX, posY) {
 
         if (!hasStart || isRoundWon) {
@@ -280,7 +310,7 @@ const Game = (function () {
             const hasWinner = checkWinner();
 
             if (hasWinner) {
-                console.log(`${hasWinner} wins!`);
+                handleRoundEnd(hasWinner);
                 return true;
             }
 
@@ -358,7 +388,7 @@ const Game = (function () {
     }
 
     const getState = () => {
-        return { currentTurn, round, gameMode, hasStart, isRoundWon };
+        return { currentTurn, round, gameMode, hasStart, isRoundWon, totalRounds, scores };
     }
 
     const getMoveHistory = () => {
@@ -425,6 +455,12 @@ const UI = (function () {
     function updatePanelContent() {
         const state = Game.getState();
         const moveHistory = Game.getMoveHistory();
+        const scoreX = document.querySelector('.card.x .score');
+        const scoreDraw = document.querySelector('.card.draw .score');
+        const scoreO = document.querySelector('.card.o .score');
+        if (scoreX) scoreX.textContent = state.scores.X;
+        if (scoreO) scoreO.textContent = state.scores.O;
+        if (scoreDraw) scoreDraw.textContent = state.scores.draw;
         turnLabel.textContent = `Turn: ${state.currentTurn}`;
         roundLabel.textContent = `Round: ${state.round + 1}`;
         modeLabel.textContent = `Mode: ${state.gameMode}`;
@@ -598,12 +634,13 @@ const UI = (function () {
             const mode = modalForm.dataset.type;
             const team = gameForm.get('teamName');
             const aiDiffMode = gameForm.get('aiDifficulty');
+            const rounds = Number(gameForm.get('rounds')) || 1;
 
             const p = createPlayer(playerName, team);
 
             //Check if player is created and registered in the pool
             if (playerPool.has(p.id)) {
-                Game.start(playerPool, mode, aiDiffMode);
+                Game.start(playerPool, mode, aiDiffMode, rounds);
 
                 const startEvent = new CustomEvent('gameStart', { detail: Game.getState() });
                 app.dispatchEvent(startEvent);
@@ -621,12 +658,13 @@ const UI = (function () {
             const pN1 = gameForm.get("playerName1");
             const pN2 = gameForm.get("playerName2");
             const mode = modalForm.dataset.type;
+            const rounds = Number(gameForm.get('rounds')) || 1;
 
             const player1 = createPlayer(pN1, 'X');
             const player2 = createPlayer(pN2, 'O');
 
             if (playerPool.has(player1.id) && playerPool.has(player2.id)) {
-                Game.start(playerPool, mode);
+                Game.start(playerPool, mode, rounds);
 
                 const startEvent = new CustomEvent('gameStart', { detail: Game.getState(), bubbles: true });
                 app.dispatchEvent(startEvent);

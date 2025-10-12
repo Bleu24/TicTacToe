@@ -271,22 +271,25 @@ const Game = (function () {
 
     const handleRoundEnd = (winner) => {
 
-        if (winner === 'X') {
+        if (winner.team === 'X') {
             scores.X++;
-        } else if (winner === 'Y') {
-            scores.Y++;
+        } else if (winner.team === 'O') {
+            scores.O++;
         } else if (winner === 'tie') {
             scores.draw++;
         }
 
         if (round + 1 < totalRounds) {
-            round++;
-            isRoundWon = false;
-            Gameboard.reset();
-            moveHistory.length = 0;
-            currentTurn = 'X';
-            UI.updateBoardContent(Gameboard.getBoard());
-            UI.updatePanelContent();
+            setTimeout(() => {
+                round++;
+                isRoundWon = false;
+                Gameboard.reset();
+                moveHistory.length = 0;
+                currentTurn = 'X';
+                UI.updateBoardContent(Gameboard.getBoard());
+                setTimeout(() => UI.removeHighlight(winner.winningCells), 1000);
+                UI.updatePanelContent();
+            },2000);
         } else {
             hasStart = false;
             UI.updatePanelContent();
@@ -332,8 +335,7 @@ const Game = (function () {
     const checkWinner = () => {
         const board = Gameboard.getBoard();
         const lastMove = moveHistory.at(-1);
-        let winningCells = null;
-        let winner = '';
+        let winner = { team: '', winningCells: null };
 
         if (lastMove === null || lastMove === undefined) {
             return;
@@ -346,18 +348,18 @@ const Game = (function () {
         for (let i = 0; i < 3; i++) {
             //Horizontal Check
             if (!Gameboard.isEmpty(i, 0) && board[i][0].input === board[i][1].input && board[i][1].input === board[i][2].input) {
-                winner = board[i][0].input;
-                winningCells = { cell1: { row: i, col: 0 }, cell2: { row: i, col: 1 }, cell3: { row: i, col: 2 } };
-                UI.highlightGridWinner(winningCells);
+                winner.team = board[i][0].input;
+                winner.winningCells = { cell1: { row: i, col: 0 }, cell2: { row: i, col: 1 }, cell3: { row: i, col: 2 } };
+                UI.highlightGridWinner(winner.winningCells);
                 isRoundWon = true;
                 return winner;
             }
 
             // Vertical Check
             if (!Gameboard.isEmpty(0, i) && board[0][i].input === board[1][i].input && board[1][i].input === board[2][i].input) {
-                winner = board[0][i].input;
-                winningCells = { cell1: { row: 0, col: i }, cell2: { row: 1, col: i }, cell3: { row: 2, col: i } };
-                UI.highlightGridWinner(winningCells);
+                winner.team = board[0][i].input;
+                winner.winningCells = { cell1: { row: 0, col: i }, cell2: { row: 1, col: i }, cell3: { row: 2, col: i } };
+                UI.highlightGridWinner(winner.winningCells);
                 isRoundWon = true;
                 return winner;
             }
@@ -365,17 +367,17 @@ const Game = (function () {
 
         //Diagonal Checks
         if (!Gameboard.isEmpty(0, 0) && board[0][0].input === board[1][1].input && board[1][1].input === board[2][2].input) {
-            winner = board[0][0].input;
-            winningCells = { cell1: { row: 0, col: 0 }, cell2: { row: 1, col: 1 }, cell3: { row: 2, col: 2 } };
-            UI.highlightGridWinner(winningCells);
+            winner.team = board[0][0].input;
+            winner.winningCells = { cell1: { row: 0, col: 0 }, cell2: { row: 1, col: 1 }, cell3: { row: 2, col: 2 } };
+            UI.highlightGridWinner(winner.winningCells);
             isRoundWon = true;
             return winner;
         }
 
         if (!Gameboard.isEmpty(0, 2) && board[0][2].input === board[1][1].input && board[1][1].input === board[2][0].input) {
-            winner = board[0][2].input;
-            winningCells = { cell1: { row: 0, col: 2 }, cell2: { row: 1, col: 1 }, cell3: { row: 2, col: 0 } };
-            UI.highlightGridWinner(winningCells);
+            winner.team = board[0][2].input;
+            winner.winningCells = { cell1: { row: 0, col: 2 }, cell2: { row: 1, col: 1 }, cell3: { row: 2, col: 0 } };
+            UI.highlightGridWinner(winner.winningCells);
             isRoundWon = true;
             return winner;
         }
@@ -490,6 +492,16 @@ const UI = (function () {
         }
 
 
+    }
+
+    function removeHighlight(winningCells) {
+        const winningCellsList = Array.from(cells).filter(el => {
+            return Object.values(winningCells).some(winningCell => {
+                return Number(el.dataset.row) === winningCell.row && Number(el.dataset.col) === winningCell.col;
+            });
+        });
+
+        winningCellsList.forEach(cell => cell.classList.remove('highlight'));
     }
 
     function highlightGridWinner(winningCells) {
@@ -744,5 +756,5 @@ const UI = (function () {
     })
 
     // Public API
-    return { updatePanelContent, updateBoardContent, highlightGridWinner };
+    return { updatePanelContent, updateBoardContent, highlightGridWinner, removeHighlight };
 })();

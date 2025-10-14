@@ -630,11 +630,9 @@ const UI = (function () {
             // render previous rounds
             allMatchHistory.forEach(roundEntry => {
                 const roundHeader = document.createElement('div');
-                roundHeader.classList.add('historyItem');
-                roundHeader.innerHTML = `<div class="historyItem__number">Round ${roundEntry.round}</div>
-                    <div class="historyItem__name">Winner: ${roundEntry.winner || 'N/A'}</div>
-                    <div class="historyItem__move"></div>
-                    <div class="historyItem__coords"></div>`;
+                roundHeader.classList.add('historyItem', 'historyHeader');
+                // simplified header markup for centered title
+                roundHeader.innerHTML = `<div class="historyHeader__title">Round ${roundEntry.round} — Winner: ${roundEntry.winner || 'N/A'}</div>`;
                 trueHistory.appendChild(roundHeader);
 
                 // render moves for this round
@@ -652,11 +650,8 @@ const UI = (function () {
             // render current round moves (if any)
             if (moveHistory && moveHistory.length) {
                 const currentHeader = document.createElement('div');
-                currentHeader.classList.add('historyItem');
-                currentHeader.innerHTML = `<div class="historyItem__number">Round ${state.round + 1} (current)</div>
-                    <div class="historyItem__name"></div>
-                    <div class="historyItem__move"></div>
-                    <div class="historyItem__coords"></div>`;
+                currentHeader.classList.add('historyItem', 'historyHeader');
+                currentHeader.innerHTML = `<div class="historyHeader__title">Round ${state.round + 1} (current)</div>`;
                 trueHistory.appendChild(currentHeader);
 
                 moveHistory.forEach((m, idx) => {

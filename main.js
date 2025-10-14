@@ -215,14 +215,41 @@ const Game = (function () {
     let isRoundWon = false;
     let hasStart = false;
     let currentTurn = 'X';
+    let startingTeam = 'X';
     let gameMode = '';
     let aiDiff = '';
+    let lastStartOptions = null;
     const moveHistory = [];
+    const matchHistory = [];
     const scores = { X: 0, O: 0, draw: 0 };
     let totalRounds = 1;
 
+    // Reset all game state, scores, and history
+    const reset = () => {
+        round = 0;
+        humanPlayer = null;
+        aiPlayer = null;
+        humanPlayer1 = null;
+        humanPlayer2 = null;
+        isRoundWon = false;
+        hasStart = false;
+        currentTurn = 'X';
+        gameMode = '';
+        aiDiff = '';
+        totalRounds = 1;
+        scores.X = 0;
+        scores.O = 0;
+        scores.draw = 0;
+        moveHistory.length = 0;
+        matchHistory.length = 0;
+        Gameboard.reset();
+    };
+
     //config factory
     const start = (players = playerPool, mode, aiDiffParam = 'none', rounds = 1) => {
+
+        // capture the players as they were passed in (before start may add an AI)
+        const playersPassedSnapshot = Array.from(players.values()).map(p => ({ id: p.id, name: p.name, team: p.team }));
 
         if (players.size === 0) {
             console.log("Create players first");
@@ -246,7 +273,7 @@ const Game = (function () {
         round = 0;
         totalRounds = rounds || 1;
         scores.X = 0;
-        scores.Y = 0;
+        scores.O = 0;
         scores.draw = 0;
         hasStart = true;
         gameMode = mode;
@@ -254,7 +281,27 @@ const Game = (function () {
         Gameboard.reset();
         moveHistory.length = 0;
         isRoundWon = false;
-        currentTurn = 'X';
+        // determine starting team for the match
+        startingTeam = 'X';
+        if (mode === 'PvAI' && players.size === 1 && humanPlayer && humanPlayer.team === 'O') {
+            // human chose O, AI should start (AI is X)
+            startingTeam = aiPlayer ? aiPlayer.team : 'X';
+        }
+        currentTurn = startingTeam;
+
+        // save last start options for rematch
+        lastStartOptions = { players: playersPassedSnapshot, mode, aiDiff: aiDiffParam, rounds };
+
+        // if AI should start immediately, schedule its move
+        if (gameMode === 'PvAI' && aiPlayer && currentTurn === aiPlayer.team) {
+            setTimeout(() => {
+                const board = Gameboard.getBoard();
+                const move = aiDiff === 'easy' ? AI.easyMove(board)
+                    : aiDiff === 'normal' ? AI.normalMove(board, aiPlayer.team, humanPlayer.team)
+                        : AI.hardMove(board, aiPlayer.team, humanPlayer.team);
+                if (move) applyMove(move.row, move.col);
+            }, 500);
+        }
     };
 
     const getCurrentPlayer = () => {
@@ -279,19 +326,45 @@ const Game = (function () {
             scores.draw++;
         }
 
+        // Save this round to matchHistory
+        matchHistory.push({
+            round: round + 1,
+            moves: moveHistory.slice(),
+            winner: winner === 'tie' ? 'tie' : (winner && winner.team ? winner.team : null),
+            winningCells: winner && winner.winningCells ? winner.winningCells : null
+        });
+
         if (round + 1 < totalRounds) {
             setTimeout(() => {
                 round++;
                 isRoundWon = false;
                 Gameboard.reset();
                 moveHistory.length = 0;
-                currentTurn = 'X';
+                // alternate starting team each round
+                startingTeam = startingTeam === 'X' ? 'O' : 'X';
+                currentTurn = startingTeam;
                 UI.updateBoardContent(Gameboard.getBoard());
-                setTimeout(() => UI.removeHighlight(winner.winningCells), 1000);
+                setTimeout(() => { if (winner && winner.winningCells) UI.removeHighlight(winner.winningCells); }, 500);
                 UI.updatePanelContent();
-            },2000);
+
+                // if AI should start this round, schedule its move
+                if (gameMode === 'PvAI' && aiPlayer && currentTurn === aiPlayer.team) {
+                    setTimeout(() => {
+                        const board = Gameboard.getBoard();
+                        const move = aiDiff === 'easy' ? AI.easyMove(board)
+                            : aiDiff === 'normal' ? AI.normalMove(board, aiPlayer.team, humanPlayer.team)
+                                : AI.hardMove(board, aiPlayer.team, humanPlayer.team);
+                        if (move) applyMove(move.row, move.col);
+                    }, 500);
+                }
+            }, 1000);
         } else {
             hasStart = false;
+            // show match end modal with summary
+            if (typeof UI !== 'undefined' && UI.showMatchEndModal) {
+                // pass the full winner object (or 'tie') so UI can access team and winningCells
+                UI.showMatchEndModal({ winner: winner, scores: { ...scores } });
+            }
             UI.updatePanelContent();
             console.log('Match finished', scores);
         }
@@ -390,7 +463,7 @@ const Game = (function () {
     }
 
     const getState = () => {
-        return { currentTurn, round, gameMode, hasStart, isRoundWon, totalRounds, scores };
+        return { currentTurn, round, gameMode, hasStart, isRoundWon, totalRounds, scores, aiDiff };
     }
 
     const getMoveHistory = () => {
@@ -412,8 +485,41 @@ const Game = (function () {
         return deepCopy;
     }
 
+    const getMatchHistory = () => {
+        // return a deep copy
+        return matchHistory.map(r => ({ round: r.round, winner: r.winner, moves: r.moves.map(m => ({ ...m })), winningCells: r.winningCells }));
+    }
 
-    return { start, applyMove, checkWinner, getState, getMoveHistory };
+    const rematch = () => {
+        if (!lastStartOptions) return;
+
+        // rebuild players map from snapshot
+        const playersMap = new Map();
+        // clear existing pool to avoid duplicates
+        playerPool.clear();
+        for (const p of lastStartOptions.players) {
+            // recreate player entries using same id
+            const player = { id: p.id || crypto.randomUUID(), name: p.name, team: p.team };
+            playerPool.set(player.id, player);
+            playersMap.set(player.id, player);
+        }
+
+        // Reset internal state but keep players
+        round = 0;
+        scores.X = 0;
+        scores.O = 0;
+        scores.draw = 0;
+        moveHistory.length = 0;
+        matchHistory.length = 0;
+        Gameboard.reset();
+        hasStart = false;
+
+        // Start match with same options
+        start(playersMap, lastStartOptions.mode, lastStartOptions.aiDiff, lastStartOptions.rounds);
+    }
+
+
+    return { start, applyMove, checkWinner, getState, getMoveHistory, getMatchHistory, reset, rematch };
 })();
 
 
@@ -453,6 +559,33 @@ const UI = (function () {
     const historyContainer = document.querySelector('.history[data-history="false"]');
     const matchHistory = document.querySelector('.matchBoard__history');
 
+    // Reset handler: clears game state and UI
+    document.querySelector('.reset').addEventListener('click', () => {
+        Game.reset();
+        // Clear board UI
+        UI.updateBoardContent(Gameboard.getBoard());
+        // Reset panel content
+        turnLabel.textContent = 'Turn:';
+        roundLabel.textContent = 'Round:';
+        modeLabel.textContent = 'Mode:';
+        status.dataset.status = 'notStart';
+        // Reset scores
+        document.querySelector('.card.x .score').textContent = '0';
+        document.querySelector('.card.o .score').textContent = '0';
+        document.querySelector('.card.draw .score').textContent = '0';
+        // Clear move history UI
+        const historyFalse = document.querySelector('.history[data-history="false"]');
+        const historyTrue = document.querySelector('.history[data-history="true"]');
+        if (historyTrue) {
+            historyTrue.innerHTML = '';
+            historyTrue.style.display = 'none';
+        }
+        if (historyFalse) {
+            historyFalse.innerHTML = 'No History Yet';
+            historyFalse.style.display = 'flex';
+        }
+    });
+
 
     function updatePanelContent() {
         const state = Game.getState();
@@ -466,29 +599,76 @@ const UI = (function () {
         turnLabel.textContent = `Turn: ${state.currentTurn}`;
         roundLabel.textContent = `Round: ${state.round + 1}`;
         modeLabel.textContent = `Mode: ${state.gameMode}`;
+        if (state.gameMode === 'PvAI' && state.aiDiff) {
+            modeLabel.textContent += ` (${state.aiDiff})`;
+        }
+        // Render cumulative match history (rounds + moves)
+        const allMatchHistory = Game.getMatchHistory ? Game.getMatchHistory() : [];
+        const trueHistory = document.querySelector('.history[data-history="true"]');
+        const falseHistory = document.querySelector('.history[data-history="false"]');
 
-        if (moveHistory && moveHistory.length !== 0) {
-            if (historyContainer.dataset.history === 'false') {
-                const removed = matchHistory.removeChild(historyContainer);
-                removed.innerHTML = '';
-                historyContainer.dataset.history = 'true';
-                matchHistory.appendChild(removed);
+        // Clear current true history contents
+        if (trueHistory) {
+            trueHistory.innerHTML = '';
+        }
+
+        if ((!allMatchHistory || allMatchHistory.length === 0) && (!moveHistory || moveHistory.length === 0)) {
+            // show placeholder
+            if (falseHistory) {
+                falseHistory.style.display = 'flex';
+                falseHistory.innerHTML = 'No History Yet';
             }
+            if (trueHistory) trueHistory.style.display = 'none';
+            return;
+        }
 
+        // hide placeholder and show true history
+        if (falseHistory) falseHistory.style.display = 'none';
+        if (trueHistory) {
+            trueHistory.style.display = 'block';
 
-            historyContainer.style.display = 'grid';
+            // render previous rounds
+            allMatchHistory.forEach(roundEntry => {
+                const roundHeader = document.createElement('div');
+                roundHeader.classList.add('historyItem');
+                roundHeader.innerHTML = `<div class="historyItem__number">Round ${roundEntry.round}</div>
+                    <div class="historyItem__name">Winner: ${roundEntry.winner || 'N/A'}</div>
+                    <div class="historyItem__move"></div>
+                    <div class="historyItem__coords"></div>`;
+                trueHistory.appendChild(roundHeader);
 
-            const historyItem = document.createElement('div');
-            historyItem.classList.add('historyItem');
-            const last = moveHistory.at(-1);
+                // render moves for this round
+                roundEntry.moves.forEach((m, idx) => {
+                    const moveEl = document.createElement('div');
+                    moveEl.classList.add('historyItem');
+                    moveEl.innerHTML = `<div class="historyItem__number">${idx + 1}</div>
+                                    <div class="historyItem__name">${m.name}</div>
+                                    <div class="historyItem__move">${m.currentTurn}</div>
+                                    <div class="historyItem__coords">(${m.posX + 1}, ${m.posY + 1})</div>`;
+                    trueHistory.appendChild(moveEl);
+                });
+            });
 
-            historyItem.innerHTML = `<div class="historyItem__number">${moveHistory.length}</div>
-                            <div class="historyItem__name"> ${last.name} </div>
-                            <div class="historyItem__move"> ${last.currentTurn || ''}  </div>
-                            <div class="historyItem__coords"> (${last.posX + 1}, ${last.posY})   </div>`;
+            // render current round moves (if any)
+            if (moveHistory && moveHistory.length) {
+                const currentHeader = document.createElement('div');
+                currentHeader.classList.add('historyItem');
+                currentHeader.innerHTML = `<div class="historyItem__number">Round ${state.round + 1} (current)</div>
+                    <div class="historyItem__name"></div>
+                    <div class="historyItem__move"></div>
+                    <div class="historyItem__coords"></div>`;
+                trueHistory.appendChild(currentHeader);
 
-
-            historyContainer.appendChild(historyItem);
+                moveHistory.forEach((m, idx) => {
+                    const moveEl = document.createElement('div');
+                    moveEl.classList.add('historyItem');
+                    moveEl.innerHTML = `<div class="historyItem__number">${idx + 1}</div>
+                                    <div class="historyItem__name">${m.name}</div>
+                                    <div class="historyItem__move">${m.currentTurn}</div>
+                                    <div class="historyItem__coords">(${m.posX + 1}, ${m.posY + 1})</div>`;
+                    trueHistory.appendChild(moveEl);
+                });
+            }
         }
 
 
@@ -641,12 +821,38 @@ const UI = (function () {
 
         const gameForm = new FormData(modalForm);
 
+        // simple validation helper
+        const showFormError = (msg) => {
+            let err = modalForm.querySelector('.form-error');
+            if (!err) {
+                err = document.createElement('div');
+                err.classList.add('form-error');
+                modalForm.prepend(err);
+            }
+            err.textContent = msg;
+        };
+        const clearFormError = () => {
+            const err = modalForm.querySelector('.form-error');
+            if (err) err.remove();
+        };
+
         if (modalForm.dataset.type === 'PvAI') {
             const playerName = gameForm.get('playerName');
             const mode = modalForm.dataset.type;
             const team = gameForm.get('teamName');
             const aiDiffMode = gameForm.get('aiDifficulty');
             const rounds = Number(gameForm.get('rounds')) || 1;
+
+            // validation
+            if (!playerName || playerName.trim() === '') {
+                showFormError('Player name is required');
+                return;
+            }
+            if (!team || (team !== 'X' && team !== 'O')) {
+                showFormError('Please select a team');
+                return;
+            }
+            clearFormError();
 
             const p = createPlayer(playerName, team);
 
@@ -671,6 +877,17 @@ const UI = (function () {
             const pN2 = gameForm.get("playerName2");
             const mode = modalForm.dataset.type;
             const rounds = Number(gameForm.get('rounds')) || 1;
+
+            // validation
+            if (!pN1 || pN1.trim() === '' || !pN2 || pN2.trim() === '') {
+                showFormError('Both player names are required');
+                return;
+            }
+            if (pN1.trim() === pN2.trim()) {
+                showFormError('Player names must be different');
+                return;
+            }
+            clearFormError();
 
             const player1 = createPlayer(pN1, 'X');
             const player2 = createPlayer(pN2, 'O');
@@ -722,7 +939,7 @@ const UI = (function () {
         }
     });
 
-    // Automatically remove notifications after a timeout
+
     function autoRemoveNotification(timeout = 2500) {
         setTimeout(() => {
             if (document.body.contains(notification)) {
@@ -734,7 +951,9 @@ const UI = (function () {
     app.addEventListener('gameStart', e => {
         const gameState = Game.getState();
 
-        modal.remove();
+        modal.style.display = 'none';
+
+        if (gameModeModal) gameModeModal.style.display = 'flex';
 
         status.dataset.status = 'Start';
         notification.innerHTML = `
@@ -748,13 +967,107 @@ const UI = (function () {
 
         turnLabel.textContent = `Turn: ${gameState.currentTurn}`;
         roundLabel.textContent = `Round: ${gameState.round + 1}`;
-        modeLabel.textContent = `Mode: ${gameState.gameMode}`
+        modeLabel.textContent = `Mode: ${gameState.gameMode}`;
+        if (gameState.gameMode === 'PvAI' && gameState.aiDiff) {
+            modeLabel.textContent += ` (${gameState.aiDiff})`;
+        }
 
         // Call autoRemoveNotification whenever a notification is added
         document.body.appendChild(notification);
         autoRemoveNotification();
     })
 
+    // Show match end modal with summary and actions
+    function showMatchEndModal({ winner, scores }) {
+        // winner may be the string 'tie' or an object { team, winningCells }
+        let displayWinner = 'N/A';
+        let winningCells = null;
+        if (winner === 'tie') {
+            displayWinner = 'Tie';
+        } else if (winner && typeof winner === 'object') {
+            displayWinner = winner.team || 'N/A';
+            winningCells = winner.winningCells || null;
+        } else if (typeof winner === 'string') {
+            displayWinner = winner;
+        }
+        // create modal overlay using existing bg-modal styles, add end-modal for tweaks
+        const endModal = document.createElement('div');
+        endModal.classList.add('bg-modal', 'end-modal');
+        endModal.setAttribute('role', 'dialog');
+        endModal.setAttribute('aria-modal', 'true');
+        endModal.style.display = 'flex';
+
+        endModal.innerHTML = `
+            <div class="modal" aria-labelledby="end-title" tabindex="-1">
+                <div class="gameMode">
+                    <h2 id="end-title">Match Finished</h2>
+                    <p>Winner: <strong>${displayWinner}</strong></p>
+                    <p>Scores - X: ${scores.X} | Draw: ${scores.draw} | O: ${scores.O}</p>
+                    <div class="btns" style="display:flex; gap:8px; margin-top:12px; justify-content:center;">
+                        <button class="rematchBtn">Rematch</button>
+                        <button class="newMatchBtn">New Match</button>
+                        <button class="closeMatchBtn">Close</button>
+                    </div>
+                </div>
+            </div>`;
+
+        document.body.appendChild(endModal);
+
+        // focus handling: move focus to modal
+        const firstFocusable = endModal.querySelector('button');
+        if (firstFocusable) firstFocusable.focus();
+
+        // click handlers
+        endModal.addEventListener('click', (ev) => {
+            if (ev.target.closest('.closeMatchBtn')) {
+                endModal.remove();
+            }
+            if (ev.target.closest('.newMatchBtn')) {
+                // close end modal and re-open the main game start modal (game mode selection)
+                if (typeof winningCells !== 'undefined' && winningCells && UI && UI.removeHighlight) {
+                    UI.removeHighlight(winningCells);
+                }
+                // ensure any leftover modal form is removed
+                const existingForm = document.querySelector('.modalForm');
+                if (existingForm) existingForm.remove();
+
+                endModal.remove();
+                // show the original modal to let user pick mode again
+                modal.style.display = 'flex';
+                if (gameModeModal) gameModeModal.style.display = 'flex';
+            }
+            if (ev.target.closest('.rematchBtn')) {
+                try {
+                    if (typeof winningCells !== 'undefined' && winningCells && UI && UI.removeHighlight) {
+                        UI.removeHighlight(winningCells);
+                    }
+                    if (typeof Game !== 'undefined' && Game.rematch) {
+                        Game.rematch();
+                        UI.updateBoardContent(Gameboard.getBoard());
+                        UI.updatePanelContent();
+                    } else {
+                        // fallback
+                        Game.reset();
+                        UI.updateBoardContent(Gameboard.getBoard());
+                        UI.updatePanelContent();
+                    }
+                    endModal.remove();
+                } catch (err) {
+                    location.reload();
+                }
+            }
+        });
+
+        // allow Esc to close
+        const onKey = (e) => {
+            if (e.key === 'Escape') {
+                endModal.remove();
+                document.removeEventListener('keydown', onKey);
+            }
+        };
+
+        document.addEventListener('keydown', onKey);
+    }
     // Public API
-    return { updatePanelContent, updateBoardContent, highlightGridWinner, removeHighlight };
+    return { updatePanelContent, updateBoardContent, highlightGridWinner, removeHighlight, showMatchEndModal };
 })();

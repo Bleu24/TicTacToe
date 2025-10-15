@@ -1,6 +1,7 @@
 import { playerPool } from "./playerPool.ds";
 import { Gameboard } from "./gameBoard";
 import { AI } from "./ai";
+import { UI } from "../main";
 
 const Game = (function () {
     let round = 0;

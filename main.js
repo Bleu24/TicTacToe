@@ -1,7 +1,7 @@
-import { Gameboard } from "./modules/gameBoard";
-import { Game } from "./modules/game";
-import { playerPool } from "./modules/playerPool.ds";
-import { createPlayer } from "./modules/game";
+import { Gameboard } from "./modules/gameBoard.js";
+import { Game } from "./modules/game.js";
+import { playerPool } from "./modules/playerPool.ds.js";
+import { createPlayer } from "./modules/game.js";
 
 const UI = (function () {
     // Cache DOM elements

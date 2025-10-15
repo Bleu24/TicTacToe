@@ -1,7 +1,7 @@
-import { playerPool } from "./playerPool.ds";
-import { Gameboard } from "./gameBoard";
-import { AI } from "./ai";
-import { UI } from "../main";
+import { playerPool } from "./playerPool.ds.js";
+import { Gameboard } from "./gameBoard.js";
+import { AI } from "./ai.js";
+import { UI } from "../main.js";
 
 const Game = (function () {
     let round = 0;

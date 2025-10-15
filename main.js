@@ -526,3 +526,5 @@ const UI = (function () {
     // Public API
     return { updatePanelContent, updateBoardContent, highlightGridWinner, removeHighlight, showMatchEndModal };
 })();
+
+export { UI };
